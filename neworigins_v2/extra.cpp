@@ -33,16 +33,16 @@
 
 #define RELICS_REQUIRED_FOR_AVATAR	10
 #define MINIMUM_ACTIVE_QUESTS		5
-#define MAXIMUM_ACTIVE_QUESTS		30
-#define QUEST_EXPLORATION_PERCENT	50
-#define QUEST_SPAWN_RATE		8
-#define QUEST_MAX_REWARD		6000
+#define MAXIMUM_ACTIVE_QUESTS		15
+#define QUEST_EXPLORATION_PERCENT	30
+#define QUEST_SPAWN_RATE		5
+#define QUEST_MAX_REWARD		4000
 #define QUEST_SPAWN_CHANCE		70
 #define MAX_DESTINATIONS		5
 
 int Game::SetupFaction( Faction *pFac )
 {
-	pFac->unclaimed = Globals->START_MONEY + TurnNumber() * 100;
+	pFac->unclaimed = Globals->START_MONEY + TurnNumber() * 200;
 
 	if (pFac->noStartLeader) {
 		return 1;
@@ -60,9 +60,9 @@ int Game::SetupFaction( Faction *pFac )
 	// Set up magic
 	//
 	temp2->type = U_MAGE;
-	temp2->Study(S_FORCE, 180);
-	temp2->Study(S_PATTERN, 180);
-	temp2->Study(S_SPIRIT, 180);
+	temp2->Study(S_FORCE, 30);
+	temp2->Study(S_PATTERN, 30);
+	temp2->Study(S_SPIRIT, 30);
 	temp2->Study(S_GATE_LORE, 30);
 
 	// Set up health
@@ -644,57 +644,8 @@ Faction *Game::CheckVictory()
 		}
 	}
 
-	// See if anyone has won by collecting enough relics of grace
-	// forlist_reuse(&factions) {
-	// 	f = (Faction *) elem;
-	// 	// No accidentally transforming Guardsmen
-	// 	// or Creatures into Avatar!
-	// 	if (f->IsNPC())
-	// 		continue;
-
-	// 	forlist(&regions) {
-	// 		r = (ARegion *) elem;
-	// 		forlist(&r->objects) {
-	// 			o = (Object *) elem;
-	// 			forlist(&o->units) {
-	// 				u = (Unit *) elem;
-	// 					if (u->items.GetNum(I_RELICOFGRACE) == RELICS_REQUIRED_FOR_AVATAR) {
-	// 						// Remove all I_RELICOFGRACE
-	// 						u->items.SetNum(I_RELICOFGRACE, 0);
-
-	// 						// Remove all men
-	// 						forlist(&u->items) {
-	// 							Item *i = (Item *)elem;
-	// 							if (ItemDefs[i->type].type & IT_MAN) {
-	// 								u->items.SetNum(i->type, 0);
-	// 							}
-	// 						}
-
-	// 						// Add 1 x I_AVAT
-	// 						u->SetMen(I_AVAT, 1);
-
-	// 						// Make all skills level 5
-	// 						u->type = U_MAGE;
-	// 						for (int i = 0; i < NSKILLS; i++) {
-	// 							if (SkillDefs[i].abbr == NULL) continue;
-	// 							if (SkillDefs[i].flags & SkillType::DISABLED) continue;
-
-	// 							printf("\n SKILL: %s \n", SkillDefs[i].name);
-	// 							u->Study(i, 450);
-	// 						}
-
-	// 						message = "World shake as an Avatar has been born!";
-	// 						WriteTimesArticle(message);
-	// 						printf("\n ... Avatar has been born: Faction: %d, Unit: %d ... \n", u->faction->num, u->num);
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
-
 	forlist_reuse(&quests) {
 		q = (Quest *) elem;
-		if (q->times != 1) continue;
 
 		switch(q->type) {
 			case Quest::SLAY:
@@ -821,26 +772,25 @@ void Game::ModifyTablesPerRuleset(void)
 		ModifyTerrainEconomy(R_NEXUS, 1000, 15, 50, 2);
 	}
 
+	// Disable tools
+	DisableItem(I_AXE);
+	DisableItem(I_HAMMER);
+	DisableItem(I_NET);
+	DisableItem(I_LASSO);
+	DisableItem(I_BAG);
+	DisableItem(I_SPINNING);
+	DisableItem(I_PICK);
+
 	EnableItem(I_CAMEL);
-	EnableItem(I_PICK);
-	EnableItem(I_SPEAR);
-	EnableItem(I_AXE);
-	EnableItem(I_HAMMER);
 	EnableItem(I_MCROSSBOW);
 	EnableItem(I_MWAGON);
 	EnableItem(I_GLIDER);
-	EnableItem(I_NET);
-	EnableItem(I_LASSO);
-	EnableItem(I_BAG);
-	EnableItem(I_SPINNING);
 	EnableItem(I_LEATHERARMOR);
 	ModifyArmorFlags("LARM", ArmorType::USEINASSASSINATE);
 	ModifyWeaponAttack("DBOW",
 			ARMORPIERCING,
 			ATTACK_RANGED,
 			WeaponType::NUM_ATTACKS_HALF_SKILL);
-	// Make DBOWs require just LBOW, not XBOW?  And downgrade
-	// them from ARMORPIERCING to just PIERCING?
 	ModifyWeaponAttack("RUNE",
 			SLASHING,
 			ATTACK_COMBAT,
@@ -848,11 +798,9 @@ void Game::ModifyTablesPerRuleset(void)
 	EnableItem(I_CLOTHARMOR);
 	EnableItem(I_BOOTS);
 	EnableItem(I_BAXE);
-	// EnableItem(I_MBAXE);
-	// EnableItem(I_IMARM);
-	EnableItem(I_SUPERBOW);
-	// EnableItem(I_LANCE);
-	// EnableItem(I_PIKE);
+	EnableItem(I_LANCE);
+	EnableItem(I_SPEAR);
+	EnableItem(I_PIKE);
 	EnableItem(I_JAVELIN);
 	EnableItem(I_MSHIELD);
 	EnableItem(I_ISHIELD);
@@ -866,8 +814,23 @@ void Game::ModifyTablesPerRuleset(void)
 	EnableItem(I_BOOKOFEXORCISM);
 	EnableItem(I_HOLYSYMBOL);
 	EnableItem(I_CENSER);
-	EnableItem(I_RELICOFGRACE);
-	ModifyItemName(I_RELICOFGRACE, "artifact of power", "artifacts of power");
+	EnableItem(I_FSWORD);
+
+	ModifyItemProductionSkill(I_PIKE, "WEAP", 4);
+	ModifyItemProductionSkill(I_LANCE, "WEAP", 4);
+	//
+	// Change craft: adamantium
+	//
+	EnableItem(I_ADMANTIUM);
+	EnableItem(I_ADSWORD);
+	EnableItem(I_ADRING);
+	EnableItem(I_ADPLATE);
+	ModifyItemProductionSkill(I_ADMANTIUM, "MINI", 5);
+	ModifyItemProductionSkill(I_ADSWORD, "WEAP", 5);
+	ModifyItemProductionSkill(I_ADRING, "ARMO", 5);
+	ModifyItemProductionSkill(I_ADPLATE, "ARMO", 5);
+	ModifyItemBasePrice(I_ADMANTIUM, 300);
+	ModifyItemBasePrice(I_ADSWORD, 1000);
 
 	// Cut down the number of trade items to improve
 	// chances of good trade routes
@@ -879,16 +842,13 @@ void Game::ModifyTablesPerRuleset(void)
 	DisableItem(I_VELVET);
 	DisableItem(I_CASHMERE);
 	DisableItem(I_WOOL);
+	DisableItem(I_MINK);
+	DisableItem(I_DYES);
 
-	// EnableItem(I_FOOD);
-	// EnableSkill(S_COOKING);
-	// EnableSkill(S_CREATE_FOOD);
-
+	// No staff of lightning
 	DisableSkill(S_CREATE_STAFF_OF_LIGHTNING);
 	DisableItem(I_STAFFOFL);
 
-	// EnableSkill(S_ARMORCRAFT);
-	// EnableSkill(S_WEAPONCRAFT);
 	EnableSkill(S_ENCHANT_SHIELDS);
 	EnableSkill(S_CREATE_AEGIS);
 	EnableSkill(S_CREATE_WINDCHIME);
@@ -899,13 +859,14 @@ void Game::ModifyTablesPerRuleset(void)
 	EnableSkill(S_CREATE_BOOK_OF_EXORCISM);
 	EnableSkill(S_CREATE_HOLY_SYMBOL);
 	EnableSkill(S_CREATE_CENSER);
+	EnableSkill(S_CREATE_FLAMING_SWORD);
 	EnableSkill(S_TRANSMUTATION);
-	EnableSkill(S_BLASPHEMOUS_RITUAL);
 	EnableSkill(S_ENDURANCE);
 	EnableSkill(S_CAMELTRAINING);
 
 	ModifySkillDependancy(S_RAISE_UNDEAD, 0, "SUSK", 3);
 	ModifySkillDependancy(S_SUMMON_LICH, 0, "RAIS", 3);
+	ModifySkillDependancy(S_DRAGON_LORE, 1, "WOLF", 3);
 	// ModifySkillDependancy(S_SUMMON_BALROG, 0, "DEMO", 4);
 
 	ModifyItemMagicOutput(I_SKELETON, 200);
@@ -945,10 +906,6 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyMonsterSkills("WOLF", 1, 2, 3);
 	ModifyMonsterSkills("EAGL", 2, 2, 4);
 	ModifyMonsterSpoils("BALR", 30000, IT_MAGIC);
-
-	EnableItem(I_NOOGLE);
-	ModifyItemName(I_NOOGLE, "Voidborn", "Voidborn");
-	// EnableItem(I_AVAT);
 
 	//
 	// Roads
@@ -1000,21 +957,12 @@ void Game::ModifyTablesPerRuleset(void)
 		ObjectDefs[O_CITADEL].sailors,
 		4);
 
-	// Game ending structure
-	EnableObject(O_BKEEP);
-	// ModifyObjectName(O_BKEEP, "Black Tower");
-	// ModifyObjectFlags(O_BKEEP, ObjectType::CANENTER |
-	// 	ObjectType::NEVERDECAY |
-	// 	ObjectType::CANMODIFY);
-	// ModifyObjectMonster(O_BKEEP, -1);
-	// ModifyObjectConstruction(O_BKEEP, I_ROOTSTONE, 666, NULL, 0);
-
 	ModifyTerrainFlags(R_OCEAN, TerrainType::BARREN | TerrainType::FLYINGMOUNTS);
 	ModifyTerrainFlags(R_LAKE, TerrainType::BARREN | TerrainType::FLYINGMOUNTS);
 
 	ModifyTerrainItems(R_TUNDRA, 2, I_WHORSE, 25, 5);
 	ModifyTerrainItems(R_JUNGLE, 3, I_IRONWOOD, 20, 5);
-	ModifyTerrainItems(R_UFOREST, 4, I_IRONWOOD, 20, 5);
+	// ModifyTerrainItems(R_UFOREST, 4, I_IRONWOOD, 20, 5);
 
 	ModifyItemMagicInput(I_RINGOFI, 0, I_MITHRIL, 1);
 	ModifyItemMagicInput(I_RINGOFI, 1, I_SILVER, 600);
@@ -1203,29 +1151,6 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyRaceSkills("ORC", 2, "COMB");
 	ModifyRaceSkills("ORC", 3, "BUIL");
 	ModifyRaceSkills("ORC", 4, "RANC");
-
-	//
-	// Change craft: adamantium
-	//
-	EnableItem(I_ADMANTIUM);
-	EnableItem(I_ADSWORD);
-	EnableItem(I_ADBAXE);
-	EnableItem(I_ADRING);
-	EnableItem(I_ADPLATE);
-	ModifyItemProductionSkill(I_ADMANTIUM, "MINI", 5);
-	ModifyItemProductionSkill(I_ADSWORD, "WEAP", 5);
-	ModifyItemProductionSkill(I_ADBAXE, "WEAP", 5);
-	ModifyItemProductionSkill(I_ADRING, "ARMO", 5);
-	ModifyItemProductionSkill(I_ADPLATE, "ARMO", 5);
-	ModifyItemBasePrice(I_ADMANTIUM, 300);
-	ModifyItemBasePrice(I_ADSWORD, 1000);
-	ModifyItemBasePrice(I_ADBAXE, 2000);
-
-	//
-	// Events
-	//
-	EnableItem(I_HHOR);
-	EnableItem(I_VFOR);
 
 
 	//

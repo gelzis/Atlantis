@@ -2734,7 +2734,7 @@ WeaponType wepd[] = {
 	// WEAPON_DOUBLEBOW
 	{"DBOW",
 	 WeaponType::NEEDSKILL | WeaponType::RANGED | WeaponType::NOATTACKERSKILL,
-	 "LBOW", "XBOW",
+	 "LBOW", NULL,
 	 ARMORPIERCING, ATTACK_RANGED, WeaponType::NUM_ATTACKS_SKILL,
 	 0, 0, 0},
 	// WEAPON_RUNESWORD
@@ -2742,7 +2742,7 @@ WeaponType wepd[] = {
 	 WeaponType::RIDINGBONUS,
 	 "COMB", NULL,
 	 SLASHING, ATTACK_COMBAT, 1,
-	 4, 4, 0},
+	 5, 5, 0},
 	// WEAPON_MCROSSBOW
 	{"MXBO",
 	 WeaponType::NEEDSKILL | WeaponType::RANGED | WeaponType::NOATTACKERSKILL,
@@ -2754,7 +2754,7 @@ WeaponType wepd[] = {
 	 WeaponType::NEEDSKILL | WeaponType::RANGED | WeaponType::NOATTACKERSKILL,
 	 "LBOW", NULL,
 	 PIERCING, ATTACK_RANGED, 1,
-	 -2, 0, 0},
+	 0, 0, 0},
 	// WEAPON_HEAVYCROSSBOW
 	{"HXBO",
 	 WeaponType::NEEDSKILL | WeaponType::RANGED | WeaponType::NOATTACKERSKILL,
@@ -2833,7 +2833,7 @@ WeaponType wepd[] = {
 	 WeaponType::RIDINGBONUS,
 	 "COMB", NULL,
 	 CLEAVING, ATTACK_COMBAT, -2,
-	 4, 4, 0},
+	 3, 3, 0},
 	// WEAPON_BHAMMER
 	{"BHAM",
 	 WeaponType::RIDINGBONUS,

@@ -526,7 +526,7 @@ int ARegionList::GetRegType( ARegion *pReg )
 			case 1:
 				return R_CAVERN;
 			case 2:
-				return R_UFOREST;
+				return R_CHASM;
 			case 3:
 				return R_TUNNELS;
 			default:
@@ -677,7 +677,7 @@ int ARegionList::CheckRegionExit(ARegion *pFrom, ARegion *pTo )
 		chance = 40;
 	}
 	if (pFrom->type == R_CHASM || pTo->type == R_CHASM) {
-		chance = 60;
+		chance = 40;
 	}
 	if (getrandom(100) < chance) {
 		return( 0 );
