@@ -81,7 +81,7 @@ static GameDefs g = {
 
 	10000,	/* START_MONEY */
 	5,	/* WORK_FRACTION */
-	30,	/* ENTERTAIN_FRACTION */
+	20,	/* ENTERTAIN_FRACTION */
 	30,	/* ENTERTAIN_INCOME */
 
 	50,	/* TAX_BASE_INCOME */

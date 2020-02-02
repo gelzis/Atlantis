@@ -433,11 +433,16 @@ AString *ShowSkill::Report(Faction *f)
 			/* XXX -- This should be cleaner somehow. */
 			if (ITEM_DISABLED(I_PORTAL)) break;
 			*str += "A mage with the Portal Lore skill may, with the aid of "
-				"another mage, make a temporary Gate between two regions, and "
+				"another mage";
+			if (Globals->APPRENTICES_EXIST) {
+				*str += " or ";
+				*str += Globals->APPRENTICE_NAME;
+			}				
+			*str += ", make a temporary Gate between two regions, and "
 				"send units from one region to another. In order to do this, "
 				"both mages (the caster, and the target mage) must have "
 				"Portals, and the caster must be trained in Portal Lore. The "
-				"caster may teleport units weighing up to 50 weight units "
+				"caster may teleport units weighing up to 300 weight units "
 				"times his skill level, to the target mage's region. ";
 			range = FindRange(SkillDefs[skill].range);
 			if (range) {
@@ -992,12 +997,16 @@ AString *ShowSkill::Report(Faction *f)
 		case S_PHANTASMAL_ENTERTAINMENT:
 			/* XXX -- This should be cleaner somehow */
 			if (level > 1) break;
+			int phantasmal_amount = Globals->ENTERTAIN_INCOME * 20;
 			*str += "A mage with the Phantasmal Entertainment skill may use "
 				"his powers of Illusion to earn money by creating "
 				"illusionary fireworks, puppet shows, etc. In effect, "
 				"Phantasmal Entertainment grants the mage Entertainment "
-				"skill equal to five times his Phantasmal Entertainment "
-				"level. To use this skill, use the ENTERTAIN order.";
+				"skill equal to ";
+			*str += phantasmal_amount;
+			*str += " times his Phantasmal Entertainment "
+				"level and increases Entertainment limit in region. To use this "
+				"skill, the mage should CAST Phantasmal_Entertainment.";
 			break;
 		case S_CREATE_PHANTASMAL_BEASTS:
 			/* XXX -- This should be cleaner somehow. */

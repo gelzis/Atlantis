@@ -863,6 +863,9 @@ void Game::ModifyTablesPerRuleset(void)
 	EnableSkill(S_TRANSMUTATION);
 	EnableSkill(S_ENDURANCE);
 	EnableSkill(S_CAMELTRAINING);
+	DisableSkill(S_RANCHING);
+
+	// Magic
 
 	ModifySkillDependancy(S_RAISE_UNDEAD, 0, "SUSK", 3);
 	ModifySkillDependancy(S_SUMMON_LICH, 0, "RAIS", 3);
@@ -961,8 +964,8 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyTerrainFlags(R_LAKE, TerrainType::BARREN | TerrainType::FLYINGMOUNTS);
 
 	ModifyTerrainItems(R_TUNDRA, 2, I_WHORSE, 25, 5);
+	ModifyTerrainItems(R_TUNDRA, 3, I_ROUGHGEM, 35, 5);
 	ModifyTerrainItems(R_JUNGLE, 3, I_IRONWOOD, 20, 5);
-	// ModifyTerrainItems(R_UFOREST, 4, I_IRONWOOD, 20, 5);
 
 	ModifyItemMagicInput(I_RINGOFI, 0, I_MITHRIL, 1);
 	ModifyItemMagicInput(I_RINGOFI, 1, I_SILVER, 600);
@@ -1050,7 +1053,7 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyRaceSkills("IDWA", 0, "COMB");
 	ModifyRaceSkills("IDWA", 1, "WEAP");
 	ModifyRaceSkills("IDWA", 2, "MINI");
-	ModifyRaceSkills("IDWA", 3, "RANC");
+	ModifyRaceSkills("IDWA", 3, "FARM");
 	ModifyRaceSkills("IDWA", 4, "ARMO");
 	ModifyRaceSkills("IDWA", 5, "BUIL");
 
@@ -1110,7 +1113,7 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyRaceSkills("CTAU", 1, "HORS");
 	ModifyRaceSkills("CTAU", 2, "RIDI");
 	ModifyRaceSkills("CTAU", 3, "LBOW");
-	ModifyRaceSkills("CTAU", 4, "RANC");
+	ModifyRaceSkills("CTAU", 4, "FARM");
 	ModifyRaceSkills("CTAU", 5, "HEAL");
 
 	EnableItem(I_LIZARDMAN);
@@ -1150,7 +1153,6 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyRaceSkills("ORC", 1, "LUMB");
 	ModifyRaceSkills("ORC", 2, "COMB");
 	ModifyRaceSkills("ORC", 3, "BUIL");
-	ModifyRaceSkills("ORC", 4, "RANC");
 
 
 	//
@@ -1167,7 +1169,7 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyTerrainCoastRace(R_PLAIN, 0, I_HIGHELF);
 	ModifyTerrainCoastRace(R_PLAIN, 1, I_CENTAURMAN);
 	ModifyTerrainCoastRace(R_PLAIN, 2, I_GNOME);
-	ModifyTerrainEconomy(R_PLAIN, 1000, 14, 40, 1);
+	ModifyTerrainEconomy(R_PLAIN, 800, 14, 40, 1);
 
 	ClearTerrainRaces(R_FOREST);
 	ModifyTerrainRace(R_FOREST, 0, I_WOODELF);
@@ -1223,7 +1225,7 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyTerrainCoastRace(R_TUNDRA, 0, I_ICEDWARF);
 	ModifyTerrainCoastRace(R_TUNDRA, 1, I_GNOME);
 	ModifyTerrainCoastRace(R_TUNDRA, 2, I_GNOLL);
-	ModifyTerrainEconomy(R_TUNDRA, 300, 11, 10, 2);
+	ModifyTerrainEconomy(R_TUNDRA, 400, 11, 10, 2);
 
 	// Underworld
 
@@ -1237,15 +1239,15 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyTerrainCoastRace(R_CAVERN, 2, I_DROWMAN);
 	ModifyTerrainEconomy(R_CAVERN, 300, 12, 10, 1);
 
-	ClearTerrainRaces(R_UFOREST);
-	ModifyTerrainRace(R_UFOREST, 0, I_UNDERDWARF);
-	ModifyTerrainRace(R_UFOREST, 1, I_DROWMAN);
-	ModifyTerrainRace(R_UFOREST, 2, I_GNOME);
-	ModifyTerrainRace(R_UFOREST, 3, I_MAN);
-	ModifyTerrainCoastRace(R_UFOREST, 0, I_UNDERDWARF);
-	ModifyTerrainCoastRace(R_UFOREST, 1, I_DROWMAN);
-	ModifyTerrainCoastRace(R_UFOREST, 2, I_GNOME);
-	ModifyTerrainEconomy(R_UFOREST, 500, 12, 10, 2);
+	// ClearTerrainRaces(R_UFOREST);
+	// ModifyTerrainRace(R_UFOREST, 0, I_UNDERDWARF);
+	// ModifyTerrainRace(R_UFOREST, 1, I_DROWMAN);
+	// ModifyTerrainRace(R_UFOREST, 2, I_GNOME);
+	// ModifyTerrainRace(R_UFOREST, 3, I_MAN);
+	// ModifyTerrainCoastRace(R_UFOREST, 0, I_UNDERDWARF);
+	// ModifyTerrainCoastRace(R_UFOREST, 1, I_DROWMAN);
+	// ModifyTerrainCoastRace(R_UFOREST, 2, I_GNOME);
+	// ModifyTerrainEconomy(R_UFOREST, 500, 12, 10, 2);
 
 	// Underdeep
 
@@ -1257,7 +1259,7 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyTerrainCoastRace(R_CHASM, 0, I_UNDERDWARF);
 	ModifyTerrainCoastRace(R_CHASM, 1, I_DROWMAN);
 	ModifyTerrainCoastRace(R_CHASM, 2, I_GNOME);
-	ModifyTerrainEconomy(R_CHASM, 0, 0, 0, 3);
+	ModifyTerrainEconomy(R_CHASM, 200, 0, 0, 3);
 	ModifyTerrainWMons(R_CHASM, 20, I_DEMON, I_BALROG, I_ETTIN);
 
 	ClearTerrainRaces(R_DFOREST);
