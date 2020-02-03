@@ -208,7 +208,7 @@ void Battle::DoSpecialAttack(int round, Soldier *a, Army *attackers,
 			times *= a->slevel;
 		int realtimes = spd->damage[i].minnum + getrandom(times) +
 			getrandom(times);
-		num = def->DoAnAttack(a->special, realtimes,
+		num = def->DoAnAttack(this, a->special, realtimes,
 				spd->damage[i].type, a->slevel,
 				spd->damage[i].flags, spd->damage[i].dclass,
 				spd->damage[i].effect, 0, a);

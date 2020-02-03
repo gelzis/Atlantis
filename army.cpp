@@ -526,6 +526,7 @@ Army::Army(Unit * ldr,AList * locs,int regtype,int ass)
 	tac = ldr->GetAttribute("tactics");
 	count = 0;
 	hitstotal = 0;
+	tactics_bonus = 0;
 
 	if (ass) {
 		count = 1;
@@ -622,6 +623,9 @@ void Army::Reset() {
 	canfront = notfront;
 	canbehind = notbehind;
 	notfront = notbehind;
+	if (tactics_bonus > 0) {
+		tactics_bonus -= 1;
+	}
 }
 
 void Army::WriteLosses(Battle * b) {
@@ -1113,7 +1117,7 @@ int Army::RemoveEffects(int num, char const *effect)
 	return(ret);
 }
 
-int Army::DoAnAttack(char const *special, int numAttacks, int attackType,
+int Army::DoAnAttack(Battle * b, char const *special, int numAttacks, int attackType,
 		int attackLevel, int flags, int weaponClass, char const *effect,
 		int mountBonus, Soldier *attacker)
 {
@@ -1197,6 +1201,15 @@ int Army::DoAnAttack(char const *special, int numAttacks, int attackType,
 
 		/* 4.3 Add bonuses versus mounted */
 		if (tar->riding != -1) attackLevel += mountBonus;
+
+		b->AddLine(AString("Attack level: ") + attackLevel + ".");
+
+		/* 4.4 Add advanced tactics bonus */
+		if (Globals->ADVANCED_TACTICS) {
+			attackLevel += tactics_bonus;
+		}
+		
+		b->AddLine(AString("New attack level: ") + attackLevel + ".");
 
 		/* 5. Attack soldier */
 		if (attackType != NUM_ATTACK_TYPES) {

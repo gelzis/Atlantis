@@ -237,7 +237,8 @@ static GameDefs g = {
 	0,	// HARDER_ASSASSINATION
 	1,	// DISPERSE_GATE_NUMBERS
 	33,	// UNDEATH_CONTAGION
-	0   // REGIONS_ECONOMY
+	0,   // REGIONS_ECONOMY
+	0, // ADVANCED_TACTICS
 };
 
 GameDefs *Globals = &g;

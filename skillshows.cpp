@@ -234,6 +234,7 @@ AString *ShowSkill::Report(Faction *f)
 			break;
 		case S_TACTICS:
 			if (level > 1) break;
+			// TODO: change if ADVANCED_TACTICS
 			*str += "Tactics allows the unit, and all allies, to gain a "
 				"free round of attacks during battle. The army with the "
 				"highest level tactician in a battle will receive this free "
@@ -997,13 +998,13 @@ AString *ShowSkill::Report(Faction *f)
 		case S_PHANTASMAL_ENTERTAINMENT:
 			/* XXX -- This should be cleaner somehow */
 			if (level > 1) break;
-			int phantasmal_amount = Globals->ENTERTAIN_INCOME * 20;
+			// int phantasmal_amount = Globals->ENTERTAIN_INCOME * 20;
 			*str += "A mage with the Phantasmal Entertainment skill may use "
 				"his powers of Illusion to earn money by creating "
 				"illusionary fireworks, puppet shows, etc. In effect, "
 				"Phantasmal Entertainment grants the mage Entertainment "
 				"skill equal to ";
-			*str += phantasmal_amount;
+			//*str += phantasmal_amount;
 			*str += " times his Phantasmal Entertainment "
 				"level and increases Entertainment limit in region. To use this "
 				"skill, the mage should CAST Phantasmal_Entertainment.";
