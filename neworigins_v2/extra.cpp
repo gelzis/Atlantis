@@ -816,8 +816,8 @@ void Game::ModifyTablesPerRuleset(void)
 	EnableItem(I_CENSER);
 	EnableItem(I_FSWORD);
 
-	ModifyItemProductionSkill(I_PIKE, "WEAP", 4);
-	ModifyItemProductionSkill(I_LANCE, "WEAP", 4);
+	ModifyItemProductionSkill(I_PIKE, "WEAP", 2);
+	ModifyItemProductionSkill(I_LANCE, "WEAP", 2);
 	//
 	// Change craft: adamantium
 	//
@@ -829,8 +829,6 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyItemProductionSkill(I_ADSWORD, "WEAP", 5);
 	ModifyItemProductionSkill(I_ADRING, "ARMO", 5);
 	ModifyItemProductionSkill(I_ADPLATE, "ARMO", 5);
-	ModifyItemBasePrice(I_ADMANTIUM, 300);
-	ModifyItemBasePrice(I_ADSWORD, 1000);
 
 	// Cut down the number of trade items to improve
 	// chances of good trade routes
@@ -879,7 +877,7 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyItemMagicOutput(I_EAGLE, 100);
 	ModifyItemMagicOutput(I_DEMON, 100);
 	ModifyItemMagicOutput(I_DRAGON, 20);
-	ModifyItemMagicOutput(I_LICH, 20);
+	ModifyItemMagicOutput(I_LICH, 30);
 	ModifyItemEscape(I_IMP,
 			ItemType::ESC_LEV_LINEAR | ItemType::LOSE_LINKED,
 			"SUIM",
@@ -892,23 +890,6 @@ void Game::ModifyTablesPerRuleset(void)
 			ItemType::ESC_LEV_LINEAR | ItemType::LOSE_LINKED,
 			"SUBA",
 			20);
-	ModifyMonsterSpecial("LICH", "icebreath", 4);
-	ModifyMonsterSpecial("BALR", "hellfire", 4);
-	ModifyMonsterAttacksAndHits("SKEL", 2, 2, 0);
-	ModifyMonsterAttacksAndHits("UNDE", 10, 10, 0);
-	ModifyMonsterAttacksAndHits("DEMO", 6, 6, 0);
-	ModifyMonsterAttackLevel("EAGL", 4);
-	ModifyMonsterDefense("EAGL", ATTACK_COMBAT, 4);
-	ModifyMonsterDefense("EAGL", ATTACK_WEATHER, 4);
-	ModifyMonsterDefense("WOLF", ATTACK_ENERGY, 2);
-	ModifyMonsterDefense("WOLF", ATTACK_WEATHER, 2);
-	ModifyMonsterAttacksAndHits("EAGL", 3, 3, 0);
-	ModifyMonsterSkills("LICH", 4, 0, 3);
-	ModifyMonsterSkills("BALR", 5, 1, 2);
-	ModifyMonsterSkills("DEMO", 2, 2, 3);
-	ModifyMonsterSkills("WOLF", 1, 2, 3);
-	ModifyMonsterSkills("EAGL", 2, 2, 4);
-	ModifyMonsterSpoils("BALR", 30000, IT_MAGIC);
 
 	//
 	// Roads
