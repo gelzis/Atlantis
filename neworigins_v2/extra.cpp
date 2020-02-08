@@ -815,6 +815,10 @@ void Game::ModifyTablesPerRuleset(void)
 	EnableItem(I_HOLYSYMBOL);
 	EnableItem(I_CENSER);
 	EnableItem(I_FSWORD);
+	EnableItem(I_MUSHROOM);
+	EnableItem(I_HEALPOTION);
+	EnableItem(I_ROUGHGEM);
+	EnableItem(I_GEMS);
 
 	ModifyItemProductionSkill(I_PIKE, "WEAP", 4);
 	ModifyItemProductionSkill(I_LANCE, "WEAP", 4);
@@ -862,7 +866,8 @@ void Game::ModifyTablesPerRuleset(void)
 	EnableSkill(S_CREATE_FLAMING_SWORD);
 	EnableSkill(S_TRANSMUTATION);
 	EnableSkill(S_ENDURANCE);
-	EnableSkill(S_CAMELTRAINING);
+	EnableSkill(S_GEMCUTTING);
+	DisableSkill(S_CAMELTRAINING);
 	DisableSkill(S_RANCHING);
 
 	// Magic
@@ -1283,15 +1288,6 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyTerrainCoastRace(R_GROTTO, 2, I_GNOME);
 	ModifyTerrainEconomy(R_GROTTO, 500, 12, 14, 2);
 	ModifyTerrainWMons(R_GROTTO, 20, I_UNDEAD, I_BALROG, I_ETTIN);
-
-
-	if ((Globals->UNDERDEEP_LEVELS > 0) || (Globals->UNDERWORLD_LEVELS > 1)) {
-		EnableItem(I_MUSHROOM);
-		EnableItem(I_HEALPOTION);
-		EnableItem(I_ROUGHGEM);
-		EnableItem(I_GEMS);
-		EnableSkill(S_GEMCUTTING);
-	}
 
 	// Modify the various spells which are allowed to cross levels
 	if (Globals->EASIER_UNDERWORLD) {
