@@ -4101,7 +4101,7 @@ static TerrainType td[] = {
 	{"tundra", "tundra", 't', R_TUNDRA,
 	 TerrainType::RIDINGMOUNTS | TerrainType::FLYINGMOUNTS,
 	 200,11,10,2,
-	 {{I_FUR,100,10},{I_HERBS,100,10},{I_WHORSE,15,5},{I_ROUGHGEM,35,5},
+	 {{I_FUR,100,10},{I_HERBS,100,10},{I_WHORSE,20,5},{I_ROUGHGEM,35,5},
 	  {-1,0,0},{-1,0,0},{-1,0,0}},
 	 {I_ESKIMO,I_ICEDWARF,-1,-1},
 	 {I_SEAELF,I_VIKING,-1},
