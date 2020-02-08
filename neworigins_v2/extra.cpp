@@ -912,7 +912,6 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyObjectConstruction(O_ROADSE, I_STONE, 30, "BUIL", 2);
 	ModifyObjectConstruction(O_ROADSW, I_STONE, 30, "BUIL", 2);
 
-
 	EnableObject(O_TEMPLE);
 	EnableObject(O_MQUARRY);
 	EnableObject(O_AMINE);
@@ -948,10 +947,6 @@ void Game::ModifyTablesPerRuleset(void)
 
 	ModifyTerrainFlags(R_OCEAN, TerrainType::BARREN | TerrainType::FLYINGMOUNTS);
 	ModifyTerrainFlags(R_LAKE, TerrainType::BARREN | TerrainType::FLYINGMOUNTS);
-
-	ModifyTerrainItems(R_TUNDRA, 2, I_WHORSE, 25, 5);
-	ModifyTerrainItems(R_TUNDRA, 3, I_ROUGHGEM, 35, 5);
-	ModifyTerrainItems(R_JUNGLE, 3, I_IRONWOOD, 20, 5);
 
 	ModifyItemMagicInput(I_RINGOFI, 0, I_MITHRIL, 1);
 	ModifyItemMagicInput(I_RINGOFI, 1, I_SILVER, 600);
@@ -1155,7 +1150,7 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyTerrainCoastRace(R_PLAIN, 0, I_HIGHELF);
 	ModifyTerrainCoastRace(R_PLAIN, 1, I_CENTAURMAN);
 	ModifyTerrainCoastRace(R_PLAIN, 2, I_GNOME);
-	ModifyTerrainEconomy(R_PLAIN, 800, 14, 40, 1);
+	ModifyTerrainEconomy(R_PLAIN, 800, 12, 40, 1);
 
 	ClearTerrainRaces(R_FOREST);
 	ModifyTerrainRace(R_FOREST, 0, I_WOODELF);
@@ -1225,17 +1220,15 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyTerrainCoastRace(R_CAVERN, 2, I_DROWMAN);
 	ModifyTerrainEconomy(R_CAVERN, 300, 12, 10, 1);
 
-	// ClearTerrainRaces(R_UFOREST);
-	// ModifyTerrainRace(R_UFOREST, 0, I_UNDERDWARF);
-	// ModifyTerrainRace(R_UFOREST, 1, I_DROWMAN);
-	// ModifyTerrainRace(R_UFOREST, 2, I_GNOME);
-	// ModifyTerrainRace(R_UFOREST, 3, I_MAN);
-	// ModifyTerrainCoastRace(R_UFOREST, 0, I_UNDERDWARF);
-	// ModifyTerrainCoastRace(R_UFOREST, 1, I_DROWMAN);
-	// ModifyTerrainCoastRace(R_UFOREST, 2, I_GNOME);
-	// ModifyTerrainEconomy(R_UFOREST, 500, 12, 10, 2);
-
-	// Underdeep
+	ClearTerrainRaces(R_UFOREST);
+	ModifyTerrainRace(R_UFOREST, 0, I_UNDERDWARF);
+	ModifyTerrainRace(R_UFOREST, 1, I_DROWMAN);
+	ModifyTerrainRace(R_UFOREST, 2, I_GNOME);
+	ModifyTerrainRace(R_UFOREST, 3, I_MAN);
+	ModifyTerrainCoastRace(R_UFOREST, 0, I_UNDERDWARF);
+	ModifyTerrainCoastRace(R_UFOREST, 1, I_DROWMAN);
+	ModifyTerrainCoastRace(R_UFOREST, 2, I_GNOME);
+	ModifyTerrainEconomy(R_UFOREST, 500, 12, 10, 2);
 
 	ClearTerrainRaces(R_CHASM);
 	ModifyTerrainRace(R_CHASM, 0, I_UNDERDWARF);
@@ -1247,28 +1240,6 @@ void Game::ModifyTablesPerRuleset(void)
 	ModifyTerrainCoastRace(R_CHASM, 2, I_GNOME);
 	ModifyTerrainEconomy(R_CHASM, 200, 0, 0, 3);
 	ModifyTerrainWMons(R_CHASM, 20, I_DEMON, I_BALROG, I_ETTIN);
-
-	ClearTerrainRaces(R_DFOREST);
-	ModifyTerrainRace(R_DFOREST, 0, I_UNDERDWARF);
-	ModifyTerrainRace(R_DFOREST, 1, I_DROWMAN);
-	ModifyTerrainRace(R_DFOREST, 2, I_GNOME);
-	ModifyTerrainRace(R_DFOREST, 3, I_ORC);
-	ModifyTerrainCoastRace(R_DFOREST, 0, I_UNDERDWARF);
-	ModifyTerrainCoastRace(R_DFOREST, 1, I_DROWMAN);
-	ModifyTerrainCoastRace(R_DFOREST, 2, I_GNOME);
-	ModifyTerrainEconomy(R_DFOREST, 300, 11, 12, 3);
-	ModifyTerrainWMons(R_DFOREST, 20, I_SANDLING, I_BALROG, I_ETTIN);
-
-	ClearTerrainRaces(R_GROTTO);
-	ModifyTerrainRace(R_GROTTO, 0, I_UNDERDWARF);
-	ModifyTerrainRace(R_GROTTO, 1, I_DROWMAN);
-	ModifyTerrainRace(R_GROTTO, 2, I_GNOME);
-	ModifyTerrainRace(R_GROTTO, 3, I_ORC);
-	ModifyTerrainCoastRace(R_GROTTO, 0, I_UNDERDWARF);
-	ModifyTerrainCoastRace(R_GROTTO, 1, I_DROWMAN);
-	ModifyTerrainCoastRace(R_GROTTO, 2, I_GNOME);
-	ModifyTerrainEconomy(R_GROTTO, 500, 12, 14, 2);
-	ModifyTerrainWMons(R_GROTTO, 20, I_UNDEAD, I_BALROG, I_ETTIN);
 
 	// Modify the various spells which are allowed to cross levels
 	if (Globals->EASIER_UNDERWORLD) {
