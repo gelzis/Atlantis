@@ -4119,7 +4119,7 @@ static TerrainType td[] = {
 	{"underforest", "uforest", 'u', R_UFOREST,
 	 TerrainType::FLYINGMOUNTS,
 	 100,11,10,2,
-	 {{I_WOOD,80,5},{I_STONE,100,10},{I_IRON,80,10},{I_MUSHROOM,20,10},
+	 {{I_WOOD,80,5},{I_STONE,100,10},{I_IRON,80,5},{I_MUSHROOM,20,10},
 	  {-1,0,0},{-1,0,0},{-1,0,0}},
 	 {I_DARKMAN,I_UNDERDWARF,I_ORC,I_GREYELF},
 	 {-1,-1,-1},
