@@ -34,6 +34,7 @@ class Game;
 #include "production.h"
 #include "object.h"
 #include "events.h"
+#include "rapidjson/document.h"
 
 #define CURRENT_ATL_VER MAKE_ATL_VER(5, 2, 4)
 
@@ -122,6 +123,8 @@ public:
 
 	void RecordFact(FactBase* fact);
 	void WriteWorldEvents();
+	int SimulateBattle(char inputJsonFilename[]);
+	int ExportGameData();
 private:
 	//
 	// Game editing functions.
@@ -312,7 +315,7 @@ private:
 	int doExtraInit;
 
 	Events* events;
-	
+
 	//
 	// Parsing functions
 	//
@@ -600,6 +603,8 @@ private:
 	// For faction statistics
 	void CountItems (int **);
 	int CountItem (Faction *, int);
+
+	AList GetUnitsFromJsonArray(rapidjson::Value& jsonArray, Faction *faction);
 };
 
 #endif

@@ -428,7 +428,7 @@ void Battle::GetSpoils(AList *losers, ItemList *spoils, int ass)
 }
 
 void AddBattleFact(
-	Events* events, 
+	Events* events,
 	ARegion* region,
 	Unit* attacker,
 	Unit* defender,
@@ -441,19 +441,19 @@ void AddBattleFact(
 	auto battleFact = new BattleFact();
 
 	battleFact->location.Assign(region);
-	
+
 	battleFact->attacker.AssignUnit(attacker);
 	battleFact->attacker.AssignArmy(attackerArmy);
-	
+
 	battleFact->defender.AssignUnit(defender);
 	battleFact->defender.AssignArmy(defenderArmy);
-	
+
 	battleFact->outcome = outcome;
 
 	events->AddFact(battleFact);
 }
 
-int Battle::Run(Events* events, 
+int Battle::Run(Events* events,
 		ARegion * region,
 		Unit * att,
 		AList * atts,
@@ -537,7 +537,7 @@ int Battle::Run(Events* events,
 		}
 
 		armies[1]->Win(this, spoils);
-		
+
 		AddLine("");
 		AddLine(temp);
 		AddLine("");
@@ -620,7 +620,7 @@ int Battle::Run(Events* events,
 	}
 
 	AddLine("Total Casualties:");
-	
+
 	armies[0]->Tie(this);
 	armies[1]->Tie(this);
 	temp = "Spoils: none.";
