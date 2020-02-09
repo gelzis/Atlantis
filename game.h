@@ -118,6 +118,7 @@ public:
 	// Functions to allow enabling/disabling parts of the data tables
 	void ModifyTablesPerRuleset(void);
 
+	int SimulateBattle(AString inputJson);
 private:
 	//
 	// Game editing functions.

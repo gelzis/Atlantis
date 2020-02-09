@@ -2089,3 +2089,64 @@ void Game::WriteTimesArticle(AString article)
         }
 }
 
+int Game::SimulateBattle(AString inputJson)
+{
+	// AString filename;
+
+	// if (f.OpenByName(inputJson) != -1) {
+		// f.PutStr(article);
+		// f.Close();
+	// }
+	ARegionList regions;
+	int unitSequence = 1;
+
+	regions.CreateBattlegroundWorld();
+
+	ARegion *customRegion = regions.GetRegion(0, 0, 0);
+
+	Faction *attackerFaction = new Faction;
+	attackerFaction->num = 3;
+	attackerFaction->name = new AString("Attacker");
+
+	Faction *defenderFaction = new Faction;
+	defenderFaction->num = 4;
+	defenderFaction->name = new AString("Defender");
+
+	Unit *newunit = new Unit(1, attackerFaction);
+	newunit->SetName(new AString("Attacker"));
+	newunit->SetMen(I_LEADERS, 1);
+	newunit->MoveUnit(((ARegion *) customRegion)->GetDummy());
+
+	unitSequence++;
+	Unit *newunit2 = new Unit(2, defenderFaction);
+	newunit2->SetName(new AString("Defender"));
+	newunit2->SetMen(I_LEADERS, 1);
+	newunit2->MoveUnit(((ARegion *) customRegion)->GetDummy());
+
+	AList atts, defs;
+
+	Location *attackerLocation = new Location;
+	attackerLocation->region = customRegion;
+	attackerLocation->obj = customRegion->GetDummy();
+	attackerLocation->unit = newunit;
+
+	Location *defenderLocation = new Location;
+	defenderLocation->region = customRegion;
+	defenderLocation->obj = customRegion->GetDummy();
+	defenderLocation->unit = newunit2;
+
+	atts.Add(attackerLocation);
+	defs.Add(defenderLocation);
+
+	Battle * battleSimulation = new Battle;
+	battleSimulation->WriteSides(customRegion, newunit, newunit2, &atts, &defs, 0, &regions);
+	battleSimulation->Run(customRegion, newunit, &atts, newunit2, &defs, 0, &regions);
+
+	forlist(&battleSimulation->text) {
+		AString * s = (AString *) elem;
+		cout << *s << endl; 
+	}
+
+	return 1;
+}
+
