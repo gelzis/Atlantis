@@ -2940,7 +2940,7 @@ void makeRivers(Map* map, ARegionArray* arr, std::vector<WaterBody*>& waterBodie
 				if (otherWater < 0) {
 					continue;
 				}
-				
+
 				int currentDist = distances[water->name][otherWater];
 				if (newDist < currentDist ) {
 					distances[water->name][otherWater] = newDist;
@@ -3183,7 +3183,7 @@ void cleanupIsolatedPlaces(ARegionArray* arr, std::vector<WaterBody*>& waterBodi
 
 int countNeighbors(ARegionGraph& graph, ARegion* reg, int ofType, int distance) {
 	graphs::Location2D loc = { reg->xloc, reg->yloc };
-	
+
 	int count = 0;
 
 	auto result = graphs::breadthFirstSearch(graph, loc);
@@ -3251,7 +3251,7 @@ std::vector<graphs::Location2D> getPoints(const int w, const int h,
 
 	int minDist = initialMinDist;
 	int cellSize = ceil(minDist / sqrt(2));
-	
+
 	graphs::Location2D loc;
 	do {
 		loc = { x: getrandom(w), y: getrandom(h) };
@@ -3502,7 +3502,7 @@ void nameArea(int width, int height, ARegionGraph &graph, std::unordered_set<std
 				volcanoName = getRegionName(getrandom(width * height), etnos, r->type, 1, false);
 			}
 			usedNames.emplace(volcanoName);
-			
+
 			std::cout << volcanoName << std::endl;
 			r->SetName(volcanoName.c_str());
 		}
@@ -3840,7 +3840,7 @@ void ARegionList::AddHistoricalBuildings(ARegionArray* arr, const int w, const i
 	}
 
 	ARegionGraph graph = ARegionGraph(arr);
-	
+
 	graph.setInclusion([](ARegion* current, ARegion* next) {
 		return next->type != R_OCEAN && next->type != R_VOLCANO;
 	});
@@ -4011,7 +4011,7 @@ void ARegionList::CreateNaturalSurfaceLevel(Map* map) {
 	const int h = map->map.height / 2;
 
 	MakeRegions(level, w, h);
-	
+
 	pRegionArrays[level]->SetName(0);
 	pRegionArrays[level]->levelType = ARegionArray::LEVEL_SURFACE;
 
@@ -4038,13 +4038,13 @@ void ARegionList::CreateNaturalSurfaceLevel(Map* map) {
 
 	const int maxRiverReach = std::min(w, h) / 4;
 	makeRivers(map, arr, waterBodies, rivers, w, h, maxRiverReach);
-	
+
 	cleanupIsolatedPlaces(arr, waterBodies, rivers, w, h);
 
 	placeVolcanoes(arr, w, h);
 
 	GrowRaces(arr);
-	
+
 	giveNames(arr, waterBodies, rivers, w, h);
 	assertAllRegionsHaveName(w, h, arr);
 
@@ -4106,7 +4106,7 @@ void ARegionList::ResoucesStatistics() {
 
 	forlist(this) {
 		ARegion* reg = (ARegion*) elem;
-		
+
 		{
 			forlist (&reg->products) {
 				Production* p = (Production*) elem;
@@ -4191,4 +4191,25 @@ const std::unordered_map<ARegion*, graphs::Node<ARegion*>> breadthFirstSearch(AR
     }
 
     return cameFrom;
+}
+void ARegionList::CreateBattlegroundWorld()
+{
+	CreateLevels(1);
+
+	ARegionArray *arr = new ARegionArray(1, 1);
+
+	ARegion *reg = new ARegion;
+	reg->SetLoc(0, 0, 0);
+	reg->num = Num();
+	reg->type = R_PLAIN;
+	reg->race = -1;
+	reg->wages = -1;
+	Add(reg);
+	arr->SetRegion(0, 0, reg);
+	arr->SetName("Battlegrounds");
+	arr->levelType = ARegionArray::LEVEL_SURFACE;
+
+	pRegionArrays[0] = arr;
+
+	FinalSetup(pRegionArrays[0]);
 }
