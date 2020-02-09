@@ -458,6 +458,7 @@ class ARegionList : public AList
 		// Public world creation stuff
 		//
 		void CreateLevels(int numLevels);
+		void CreateBattlegroundWorld();
 		void CreateAbyssLevel(int level, char const *name);
 		void CreateNexusLevel(int level, int xSize, int ySize, char const *name);
 		void CreateSurfaceLevel(int level, int xSize, int ySize, char const *name);

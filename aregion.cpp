@@ -2724,3 +2724,25 @@ int ParseTerrain(AString *token)
 	
 	return (-1);
 }
+
+void ARegionList::CreateBattlegroundWorld()
+{
+	CreateLevels(1);
+
+	ARegionArray *arr = new ARegionArray(1, 1);
+
+	ARegion *reg = new ARegion;
+	reg->SetLoc(0, 0, 0);
+	reg->num = Num();
+	reg->type = R_PLAIN;
+	reg->race = -1;  
+	reg->wages = -1; 
+	Add(reg);
+	arr->SetRegion(0, 0, reg);
+	arr->SetName("Battlegrounds");
+	arr->levelType = ARegionArray::LEVEL_SURFACE;
+
+	pRegionArrays[0] = arr;
+
+	FinalSetup(pRegionArrays[0]);
+}

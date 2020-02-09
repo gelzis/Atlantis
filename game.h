@@ -33,6 +33,7 @@ class Game;
 #include "faction.h"
 #include "production.h"
 #include "object.h"
+#include "rapidjson/document.h"
 
 #define CURRENT_ATL_VER MAKE_ATL_VER(5, 2, 4)
 
@@ -118,6 +119,8 @@ public:
 	// Functions to allow enabling/disabling parts of the data tables
 	void ModifyTablesPerRuleset(void);
 
+	int SimulateBattle(char inputJsonFilename[]);
+	int ExportGameData();
 private:
 	//
 	// Game editing functions.
@@ -590,6 +593,8 @@ private:
 	int CanAttack(ARegion *, AList *, Unit *);
 	void GetAFacs(ARegion *, Unit *, Unit *, AList &, AList &, AList &);
 	void GetDFacs(ARegion *, Unit *, AList &);
+
+	AList GetUnitsFromJsonArray(rapidjson::Value& jsonArray, Faction *faction);
 };
 
 #endif

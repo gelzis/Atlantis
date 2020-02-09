@@ -43,6 +43,10 @@ void usage()
 	Awrite("atlantis genrules <introfile> <cssfile> <rules-outputfile>");
 	Awrite("");
 	Awrite("atlantis check <orderfile> <checkfile>");
+	Awrite("");
+	Awrite("atlantis battle <battlejsonfile>");
+	Awrite("");
+	Awrite("atlantis exportdata");
 }
 
 int main(int argc, char *argv[])
@@ -154,6 +158,22 @@ int main(int argc, char *argv[])
 			}
 			if (!game.GenRules(argv[4], argv[3], argv[2])) {
 				Awrite("Unable to generate rules!");
+				break;
+			}
+		} else if(AString(argv[1]) == "battle") {
+			if(argc != 3) {
+				usage();
+				break;
+			}
+
+			if(!game.SimulateBattle(argv[2])) {
+				Awrite("Unable to generate battle report!");
+				break;
+			}
+		} else if(AString(argv[1]) == "exportdata") {
+
+			if(!game.ExportGameData()) {
+				Awrite("Unable to generate battle report!");
 				break;
 			}
 		} else {
