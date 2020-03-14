@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
 				Awrite("Unable to generate rules!");
 				break;
 			}
-		} else if(AString(argv[1])== "battle") {
+		} else if(AString(argv[1]) == "battle") {
 			if(argc != 3) {
 				usage();
 				break;

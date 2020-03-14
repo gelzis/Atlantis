@@ -38,6 +38,11 @@
 #include "astring.h"
 #include "gamedata.h"
 #include "quests.h"
+#include "items.h"
+#include "skills.h"
+
+#include "rapidjson/document.h"     // rapidjson's DOM-style API
+#include "rapidjson/filereadstream.h"
 
 Game::Game()
 {
@@ -2089,17 +2094,92 @@ void Game::WriteTimesArticle(AString article)
         }
 }
 
-int Game::SimulateBattle(AString inputJson)
+AList Game::GetUnitsFromJsonArray(rapidjson::Value& jsonArray, Faction *fact)
 {
-	// AString filename;
+	AList UnitList;
+	static int unitNumberSequence = 1;
+	int itemNum, skillNum;
+	for (rapidjson::Value::ConstValueIterator itr = jsonArray.Begin(); itr != jsonArray.End(); ++itr) {
+		const rapidjson::Value& jsonUnit = *itr;
 
-	// if (f.OpenByName(inputJson) != -1) {
-		// f.PutStr(article);
-		// f.Close();
-	// }
+		Unit *newUnit = new Unit(unitNumberSequence, fact);
+		unitNumberSequence++;
+
+		if (jsonUnit.HasMember("name")) {
+			newUnit->SetName(new AString(jsonUnit["name"].GetString()));
+		}
+
+		if (jsonUnit.HasMember("combatSpell")) {
+			itemNum = LookupSkill(new AString(jsonUnit["combatSpell"].GetString()));
+
+			if (itemNum == -1) {
+				cout << "Coulnd't find skill: " << jsonUnit["combatSpell"].GetString() << endl;
+			}
+
+			newUnit->combat = itemNum;
+		}
+
+		if (jsonUnit.HasMember("flags") && jsonUnit["flags"].IsArray()) {
+			for (rapidjson::Value::ConstValueIterator itr2 = jsonUnit["flags"].Begin(); itr2 != jsonUnit["flags"].End(); ++itr2) {
+				const rapidjson::Value& flag = *itr2;
+				if (strcmp(flag.GetString(), "behind") == 0) {
+					newUnit->SetFlag(FLAG_BEHIND, 1);
+				}
+			}
+		}
+
+		for (rapidjson::Value::ConstValueIterator itr2 = jsonUnit["items"].Begin(); itr2 != jsonUnit["items"].End(); ++itr2) {
+			const rapidjson::Value& itemObject = *itr2;
+			itemNum = LookupItem(new AString(itemObject["abbr"].GetString()));
+
+			if (itemNum == -1) {
+				cout << "Coulnd't find item: " << itemObject["abbr"].GetString() << endl;
+			}
+
+			newUnit->items.SetNum(itemNum, itemObject["amount"].GetInt());
+		}
+
+		for (rapidjson::Value::ConstValueIterator itr2 = jsonUnit["skills"].Begin(); itr2 != jsonUnit["skills"].End(); ++itr2) {
+			const rapidjson::Value& itemObject = *itr2;
+			skillNum = LookupSkill(new AString(itemObject["abbr"].GetString()));
+
+			if (skillNum == -1) {
+				cout << "Coulnd't find skill: " << itemObject["abbr"].GetString() << endl;
+			}
+
+			newUnit->skills.SetDays(skillNum, GetDaysByLevel(itemObject["level"].GetInt()) * newUnit->GetMen());
+		}
+
+		UnitList.Add(newUnit);
+	}
+
+	return UnitList;
+}
+
+int Game::SimulateBattle(char inputJsonFilename[])
+{
+	FILE * jsonFilePointer = fopen(inputJsonFilename , "r");
+
+	if (jsonFilePointer == NULL) {
+		cout << "No such file found " << inputJsonFilename << "!" << endl;
+		return 0;
+	}
+
+	char readBuffer[65536];
+	rapidjson::FileReadStream is(jsonFilePointer, readBuffer, sizeof(readBuffer));
+	rapidjson::Document document;
+
+	if (document.ParseStream(is).HasParseError()) {
+		cout << "Failed to parse json file!" << endl;
+        return 0;
+	}
+
+	if (!document.HasMember("attackers") || !document.HasMember("defenders")) {
+		cout << "Please specify attacker and defender units in json!" << endl;	
+        return 0;
+	}
+
 	ARegionList regions;
-	int unitSequence = 1;
-
 	regions.CreateBattlegroundWorld();
 
 	ARegion *customRegion = regions.GetRegion(0, 0, 0);
@@ -2112,37 +2192,41 @@ int Game::SimulateBattle(AString inputJson)
 	defenderFaction->num = 4;
 	defenderFaction->name = new AString("Defender");
 
-	Unit *newunit = new Unit(1, attackerFaction);
-	newunit->SetName(new AString("Attacker"));
-	newunit->SetMen(I_LEADERS, 1);
-	newunit->MoveUnit(((ARegion *) customRegion)->GetDummy());
-
-	unitSequence++;
-	Unit *newunit2 = new Unit(2, defenderFaction);
-	newunit2->SetName(new AString("Defender"));
-	newunit2->SetMen(I_LEADERS, 1);
-	newunit2->MoveUnit(((ARegion *) customRegion)->GetDummy());
-
+	AList attackerUnits = GetUnitsFromJsonArray(document["attackers"], attackerFaction);
 	AList atts, defs;
+	Unit *attacker;
+	Unit *defender;
 
-	Location *attackerLocation = new Location;
-	attackerLocation->region = customRegion;
-	attackerLocation->obj = customRegion->GetDummy();
-	attackerLocation->unit = newunit;
+	forlist(&attackerUnits) {
+		Unit * u = (Unit *) elem;
 
-	Location *defenderLocation = new Location;
-	defenderLocation->region = customRegion;
-	defenderLocation->obj = customRegion->GetDummy();
-	defenderLocation->unit = newunit2;
+		Location *location = new Location;
+		location->region = customRegion;
+		location->obj = customRegion->GetDummy();
+		location->unit = u;
 
-	atts.Add(attackerLocation);
-	defs.Add(defenderLocation);
+		atts.Add(location);
+		attacker = u;
+	}
+
+	AList defenderUnits = GetUnitsFromJsonArray(document["defenders"], defenderFaction);
+	forlist_reuse(&defenderUnits) {
+		Unit * u = (Unit *) elem;
+
+		Location *location = new Location;
+		location->region = customRegion;
+		location->obj = customRegion->GetDummy();
+		location->unit = u;
+
+		defs.Add(location);
+		defender = u;
+	}
 
 	Battle * battleSimulation = new Battle;
-	battleSimulation->WriteSides(customRegion, newunit, newunit2, &atts, &defs, 0, &regions);
-	battleSimulation->Run(customRegion, newunit, &atts, newunit2, &defs, 0, &regions);
+	battleSimulation->WriteSides(customRegion, attacker, defender, &atts, &defs, 0, &regions);
+	battleSimulation->Run(customRegion, attacker, &atts, defender, &defs, 0, &regions);
 
-	forlist(&battleSimulation->text) {
+	forlist_reuse(&battleSimulation->text) {
 		AString * s = (AString *) elem;
 		cout << *s << endl; 
 	}
