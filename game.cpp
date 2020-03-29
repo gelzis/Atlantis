@@ -43,6 +43,8 @@
 
 #include "rapidjson/document.h"     // rapidjson's DOM-style API
 #include "rapidjson/filereadstream.h"
+#include "rapidjson/filewritestream.h"
+#include <rapidjson/writer.h>
 
 Game::Game()
 {
@@ -2129,7 +2131,7 @@ AList Game::GetUnitsFromJsonArray(rapidjson::Value& jsonArray, Faction *fact)
 					cout << "Coulnd't find item: " << itemObject["abbr"].GetString() << endl;
 				}
 
-				if (ItemDefs[itemNum].type != IT_MONSTER) {
+				if (!(ItemDefs[itemNum].type & IT_MONSTER)) {
 					allItemsAreMonsters = false;
 				}
 
@@ -2169,6 +2171,79 @@ AList Game::GetUnitsFromJsonArray(rapidjson::Value& jsonArray, Faction *fact)
 	}
 
 	return UnitList;
+}
+
+int Game::ExportGameData()
+{
+	FILE* fp = fopen("items.json", "w");
+
+	rapidjson::Document itemsDocument;
+	itemsDocument.SetArray();
+
+	rapidjson::Value& a = itemsDocument;
+
+	rapidjson::Document::AllocatorType& allocator = itemsDocument.GetAllocator();
+	for (int i=0; i<NITEMS; i++) {
+		if (!(ItemDefs[i].flags & ItemType::DISABLED)) {
+			rapidjson::Value item(rapidjson::kObjectType);
+			rapidjson::Value rapidValue(rapidjson::kStringType);
+
+			rapidValue.SetString(ItemDefs[i].abr, allocator);
+			item.AddMember("abbr", rapidValue, allocator);
+
+			rapidValue.SetString(ItemDefs[i].name, allocator);
+			item.AddMember("name", rapidValue, allocator);
+			a.PushBack(item, allocator);
+		}
+	}
+
+	char writeBuffer[65536];
+	rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
+	
+	rapidjson::Writer<rapidjson::FileWriteStream> writer(os);
+	itemsDocument.Accept(writer);
+	
+	fclose(fp);
+
+	fp = fopen("skills.json", "w");
+
+	rapidjson::Document SkillsDocument;
+	SkillsDocument.SetArray();
+
+	rapidjson::Value& rootValue = SkillsDocument;
+
+	rapidjson::Document::AllocatorType& skillAllocator = SkillsDocument.GetAllocator();
+	for (int i=0; i<NSKILLS; i++) {
+		if (!(SkillDefs[i].flags & SkillType::DISABLED) &&
+			(SkillDefs[i].flags & SkillType::COMBAT || 
+			SkillDefs[i].flags & SkillType::BATTLEREP)
+		) {
+			rapidjson::Value skill(rapidjson::kObjectType);
+			rapidjson::Value rapidStringValue(rapidjson::kStringType);
+
+			rapidStringValue.SetString(SkillDefs[i].abbr, skillAllocator);
+			skill.AddMember("abbr", rapidStringValue, skillAllocator);
+
+			rapidStringValue.SetString(SkillDefs[i].name, skillAllocator);
+			skill.AddMember("name", rapidStringValue, skillAllocator);
+
+			if (SkillDefs[i].flags & SkillType::COMBAT) {
+				skill.AddMember("combatSpell", true, skillAllocator);
+			}
+
+			rootValue.PushBack(skill, skillAllocator);
+		}
+	}
+
+	char skillSWriteBuffer[65536];
+	rapidjson::FileWriteStream writeStream(fp, skillSWriteBuffer, sizeof(skillSWriteBuffer));
+	
+	rapidjson::Writer<rapidjson::FileWriteStream> skillWriter(writeStream);
+	SkillsDocument.Accept(skillWriter);
+	
+	fclose(fp);
+
+	return 1;
 }
 
 int Game::SimulateBattle(char inputJsonFilename[])
