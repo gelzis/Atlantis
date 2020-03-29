@@ -2109,16 +2109,6 @@ AList Game::GetUnitsFromJsonArray(rapidjson::Value& jsonArray, Faction *fact)
 			newUnit->SetName(new AString(jsonUnit["name"].GetString()));
 		}
 
-		if (jsonUnit.HasMember("combatSpell")) {
-			itemNum = LookupSkill(new AString(jsonUnit["combatSpell"].GetString()));
-
-			if (itemNum == -1) {
-				cout << "Coulnd't find skill: " << jsonUnit["combatSpell"].GetString() << endl;
-			}
-
-			newUnit->combat = itemNum;
-		}
-
 		if (jsonUnit.HasMember("flags") && jsonUnit["flags"].IsArray()) {
 			for (rapidjson::Value::ConstValueIterator itr2 = jsonUnit["flags"].Begin(); itr2 != jsonUnit["flags"].End(); ++itr2) {
 				const rapidjson::Value& flag = *itr2;
@@ -2128,26 +2118,51 @@ AList Game::GetUnitsFromJsonArray(rapidjson::Value& jsonArray, Faction *fact)
 			}
 		}
 
-		for (rapidjson::Value::ConstValueIterator itr2 = jsonUnit["items"].Begin(); itr2 != jsonUnit["items"].End(); ++itr2) {
-			const rapidjson::Value& itemObject = *itr2;
-			itemNum = LookupItem(new AString(itemObject["abbr"].GetString()));
+		bool allItemsAreMonsters = true;
 
-			if (itemNum == -1) {
-				cout << "Coulnd't find item: " << itemObject["abbr"].GetString() << endl;
+		if (jsonUnit.HasMember("items") && jsonUnit["items"].IsArray()) {
+			for (rapidjson::Value::ConstValueIterator itr2 = jsonUnit["items"].Begin(); itr2 != jsonUnit["items"].End(); ++itr2) {
+				const rapidjson::Value& itemObject = *itr2;
+				itemNum = LookupItem(new AString(itemObject["abbr"].GetString()));
+
+				if (itemNum == -1) {
+					cout << "Coulnd't find item: " << itemObject["abbr"].GetString() << endl;
+				}
+
+				if (ItemDefs[itemNum].type != IT_MONSTER) {
+					allItemsAreMonsters = false;
+				}
+
+				newUnit->items.SetNum(itemNum, itemObject["amount"].GetInt());
 			}
-
-			newUnit->items.SetNum(itemNum, itemObject["amount"].GetInt());
 		}
 
-		for (rapidjson::Value::ConstValueIterator itr2 = jsonUnit["skills"].Begin(); itr2 != jsonUnit["skills"].End(); ++itr2) {
-			const rapidjson::Value& itemObject = *itr2;
-			skillNum = LookupSkill(new AString(itemObject["abbr"].GetString()));
+		if (allItemsAreMonsters) {
+			newUnit->type = U_WMON;
+		}
 
-			if (skillNum == -1) {
-				cout << "Coulnd't find skill: " << itemObject["abbr"].GetString() << endl;
+		if (jsonUnit.HasMember("skills") && jsonUnit["skills"].IsArray()) {
+			for (rapidjson::Value::ConstValueIterator itr2 = jsonUnit["skills"].Begin(); itr2 != jsonUnit["skills"].End(); ++itr2) {
+				const rapidjson::Value& itemObject = *itr2;
+				skillNum = LookupSkill(new AString(itemObject["abbr"].GetString()));
+
+				if (skillNum == -1) {
+					cout << "Coulnd't find skill: " << itemObject["abbr"].GetString() << endl;
+				}
+
+				newUnit->skills.SetDays(skillNum, GetDaysByLevel(itemObject["level"].GetInt()) * newUnit->GetMen());
+			}
+		}
+
+		if (jsonUnit.HasMember("combatSpell")) {
+			itemNum = LookupSkill(new AString(jsonUnit["combatSpell"].GetString()));
+
+			if (itemNum == -1) {
+				cout << "Coulnd't find skill: " << jsonUnit["combatSpell"].GetString() << endl;
 			}
 
-			newUnit->skills.SetDays(skillNum, GetDaysByLevel(itemObject["level"].GetInt()) * newUnit->GetMen());
+			newUnit->type = U_MAGE;
+			newUnit->combat = itemNum;
 		}
 
 		UnitList.Add(newUnit);
@@ -2178,6 +2193,8 @@ int Game::SimulateBattle(char inputJsonFilename[])
 		cout << "Please specify attacker and defender units in json!" << endl;	
         return 0;
 	}
+
+	seedrandomrandom();
 
 	ARegionList regions;
 	regions.CreateBattlegroundWorld();
