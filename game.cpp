@@ -2183,17 +2183,48 @@ int Game::ExportGameData()
 	rapidjson::Value& a = itemsDocument;
 
 	rapidjson::Document::AllocatorType& allocator = itemsDocument.GetAllocator();
+
 	for (int i=0; i<NITEMS; i++) {
 		if (!(ItemDefs[i].flags & ItemType::DISABLED)) {
-			rapidjson::Value item(rapidjson::kObjectType);
-			rapidjson::Value rapidValue(rapidjson::kStringType);
 
-			rapidValue.SetString(ItemDefs[i].abr, allocator);
-			item.AddMember("abbr", rapidValue, allocator);
+			BattleItemType *pb = FindBattleItem(ItemDefs[i].abr);
+			ArmorType *pa = FindArmor(ItemDefs[i].abr);
+			WeaponType *pw = FindWeapon(ItemDefs[i].abr);
+			MountType *pm = FindMount(ItemDefs[i].abr);
+			MonType *pmo = FindMonster(ItemDefs[i].abr, 0);
+			ManType *pr = FindRace(ItemDefs[i].abr);
 
-			rapidValue.SetString(ItemDefs[i].name, allocator);
-			item.AddMember("name", rapidValue, allocator);
-			a.PushBack(item, allocator);
+			if (pb == NULL && pa == NULL && pw == NULL && pm == NULL && pmo == NULL && pr == NULL) {
+				continue;
+			}
+
+			if (ItemDefs[i].type & IT_ILLUSION) {
+				rapidjson::Value item(rapidjson::kObjectType);
+				rapidjson::Value rapidValue(rapidjson::kStringType);
+
+				char abbr[6];
+				sprintf(abbr, "%s%s", "i", ItemDefs[i].abr);
+
+				rapidValue.SetString(abbr, allocator);
+				item.AddMember("abbr", rapidValue, allocator);
+
+				char name[50];
+				sprintf(name, "%s %s", "illusory", ItemDefs[i].name);
+
+				rapidValue.SetString(name, allocator);
+				item.AddMember("name", rapidValue, allocator);
+				a.PushBack(item, allocator);
+			} else {
+				rapidjson::Value item(rapidjson::kObjectType);
+				rapidjson::Value rapidValue(rapidjson::kStringType);
+
+				rapidValue.SetString(ItemDefs[i].abr, allocator);
+				item.AddMember("abbr", rapidValue, allocator);
+
+				rapidValue.SetString(ItemDefs[i].name, allocator);
+				item.AddMember("name", rapidValue, allocator);
+				a.PushBack(item, allocator);
+			}
 		}
 	}
 
