@@ -2194,7 +2194,11 @@ int Game::ExportGameData()
 			MonType *pmo = FindMonster(ItemDefs[i].abr, 0);
 			ManType *pr = FindRace(ItemDefs[i].abr);
 
-			if (pb == NULL && pa == NULL && pw == NULL && pm == NULL && pmo == NULL && pr == NULL) {
+			if (pb == NULL && pa == NULL && pw == NULL && pm == NULL && pmo == NULL && pr == NULL && 
+				strcmp(ItemDefs[i].abr, "HPOT") != 0 && 
+				strcmp(ItemDefs[i].abr, "HERB") != 0 &&
+				strcmp(ItemDefs[i].abr, "STAH") != 0
+			) {
 				continue;
 			}
 
@@ -2247,7 +2251,10 @@ int Game::ExportGameData()
 	for (int i=0; i<NSKILLS; i++) {
 		if (!(SkillDefs[i].flags & SkillType::DISABLED) &&
 			(SkillDefs[i].flags & SkillType::COMBAT || 
-			SkillDefs[i].flags & SkillType::BATTLEREP)
+				SkillDefs[i].flags & SkillType::BATTLEREP || 
+				strcmp(SkillDefs[i].abbr, "MHEA") == 0 || 
+				strcmp(SkillDefs[i].abbr, "HEAL") == 0
+			)
 		) {
 			rapidjson::Value skill(rapidjson::kObjectType);
 			rapidjson::Value rapidStringValue(rapidjson::kStringType);
