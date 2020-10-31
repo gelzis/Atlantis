@@ -2197,7 +2197,8 @@ int Game::ExportGameData()
 			if (pb == NULL && pa == NULL && pw == NULL && pm == NULL && pmo == NULL && pr == NULL && 
 				strcmp(ItemDefs[i].abr, "HPOT") != 0 && 
 				strcmp(ItemDefs[i].abr, "HERB") != 0 &&
-				strcmp(ItemDefs[i].abr, "STAH") != 0
+				strcmp(ItemDefs[i].abr, "STAH") != 0 && 
+				!(ItemDefs[i].flags & ItemType::MANPRODUCE)
 			) {
 				continue;
 			}
