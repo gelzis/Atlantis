@@ -40,6 +40,7 @@
 #include "quests.h"
 #include "items.h"
 #include "skills.h"
+#include "object.h"
 
 #include "rapidjson/document.h"     // rapidjson's DOM-style API
 #include "rapidjson/filereadstream.h"
@@ -2303,7 +2304,12 @@ int Game::SimulateBattle(char inputJsonFilename[])
         return 0;
 	}
 
-	if (!document.HasMember("attackers") || !document.HasMember("defenders")) {
+	if (
+		!document.HasMember("attackers") || 
+		!document.HasMember("defenders") || 
+		!document["attackers"].HasMember("units") || 
+		!document["defenders"].HasMember("units")
+	) {
 		cout << "Please specify attacker and defender units in json!" << endl;	
         return 0;
 	}
@@ -2323,30 +2329,70 @@ int Game::SimulateBattle(char inputJsonFilename[])
 	defenderFaction->num = 4;
 	defenderFaction->name = new AString("Defender");
 
-	AList attackerUnits = GetUnitsFromJsonArray(document["attackers"], attackerFaction);
+	AList attackerUnits = GetUnitsFromJsonArray(document["attackers"]["units"], attackerFaction);
 	AList atts, defs;
 	Unit *attacker;
 	Unit *defender;
+	Object *attackerStructure = NULL;
+	Object *defenderStructure = NULL;
+
+	if (document["attackers"].HasMember("structure") && document["attackers"]["structure"].HasMember("type")) {
+		int objectNum = LookupObject(new AString(document["attackers"]["structure"]["type"].GetString()));
+
+		if (objectNum == -1) {
+			cout << "Coulnd't find object: " << document["attackers"]["structure"]["type"].GetString() << endl;
+		} else {
+			attackerStructure = new Object(customRegion);
+			attackerStructure->type = objectNum;
+			attackerStructure->num = customRegion->buildingseq++;
+			attackerStructure->capacity = ObjectDefs[objectNum].protect;
+			customRegion->objects.Add(attackerStructure);
+		}
+	}
 
 	forlist(&attackerUnits) {
 		Unit * u = (Unit *) elem;
 
 		Location *location = new Location;
 		location->region = customRegion;
-		location->obj = customRegion->GetDummy();
+		if (attackerStructure != NULL) {
+			location->obj = attackerStructure;
+		} else {
+			location->obj = customRegion->GetDummy();
+		}
+
 		location->unit = u;
 
 		atts.Add(location);
 		attacker = u;
 	}
 
-	AList defenderUnits = GetUnitsFromJsonArray(document["defenders"], defenderFaction);
+	AList defenderUnits = GetUnitsFromJsonArray(document["defenders"]["units"], defenderFaction);
+
+	if (document["defenders"].HasMember("structure") && document["defenders"]["structure"].HasMember("type")) {
+		int objectNum = LookupObject(new AString(document["defenders"]["structure"]["type"].GetString()));
+
+		if (objectNum == -1) {
+			cout << "Coulnd't find object: " << document["defenders"]["structure"]["type"].GetString() << endl;
+		} else {
+			defenderStructure = new Object(customRegion);
+			defenderStructure->type = objectNum;
+			defenderStructure->num = customRegion->buildingseq++;
+			defenderStructure->capacity = ObjectDefs[objectNum].protect;
+			customRegion->objects.Add(defenderStructure);
+		}
+	}
+
 	forlist_reuse(&defenderUnits) {
 		Unit * u = (Unit *) elem;
 
 		Location *location = new Location;
 		location->region = customRegion;
-		location->obj = customRegion->GetDummy();
+		if (defenderStructure != NULL) {
+			location->obj = defenderStructure;
+		} else {
+			location->obj = customRegion->GetDummy();
+		}
 		location->unit = u;
 
 		defs.Add(location);
