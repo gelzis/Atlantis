@@ -2283,6 +2283,33 @@ int Game::ExportGameData()
 	
 	fclose(fp);
 
+	fp = fopen("objects.json", "w");
+
+	rapidjson::Document ObjectsDocument;
+	ObjectsDocument.SetArray();
+
+	rapidjson::Value& objectRootValue = ObjectsDocument;
+
+	rapidjson::Document::AllocatorType& objectAllocator = ObjectsDocument.GetAllocator();
+	for (int i=0; i<NOBJECTS; i++) {
+
+		if (!(ObjectDefs[i].flags & ObjectType::DISABLED) && ObjectDefs[i].protect) {
+			rapidjson::Value rapidStringValue(rapidjson::kStringType);
+
+			rapidStringValue.SetString(ObjectDefs[i].name, objectAllocator);
+
+			objectRootValue.PushBack(rapidStringValue, objectAllocator);
+		}
+	}
+
+	char ObjectsWriteBuffer[65536];
+	rapidjson::FileWriteStream objectWriteStream(fp, ObjectsWriteBuffer, sizeof(ObjectsWriteBuffer));
+	
+	rapidjson::Writer<rapidjson::FileWriteStream> ObjectsWriter(objectWriteStream);
+	ObjectsDocument.Accept(ObjectsWriter);
+	
+	fclose(fp);
+
 	return 1;
 }
 
@@ -2345,7 +2372,7 @@ int Game::SimulateBattle(char inputJsonFilename[])
 			attackerStructure = new Object(customRegion);
 			attackerStructure->type = objectNum;
 			attackerStructure->num = customRegion->buildingseq++;
-			attackerStructure->capacity = ObjectDefs[objectNum].protect;
+			attackerStructure->capacity = 20000;
 			customRegion->objects.Add(attackerStructure);
 		}
 	}
@@ -2378,7 +2405,7 @@ int Game::SimulateBattle(char inputJsonFilename[])
 			defenderStructure = new Object(customRegion);
 			defenderStructure->type = objectNum;
 			defenderStructure->num = customRegion->buildingseq++;
-			defenderStructure->capacity = ObjectDefs[objectNum].protect;
+			defenderStructure->capacity = 20000;
 			customRegion->objects.Add(defenderStructure);
 		}
 	}
