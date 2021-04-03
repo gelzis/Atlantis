@@ -50,6 +50,7 @@ public:
 	int operator==(const AString &);
 	int operator==(char *);
 	int operator==(const char *);
+	int operator!=(const char *);
 	int CheckPrefix(const AString &);
 	AString operator+(const AString &);
 	AString & operator+=(const AString &);

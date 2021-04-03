@@ -53,6 +53,11 @@ public:
 	void Error(const AString &error);
 };
 
+struct SimulationResult {
+	std::string battleText;
+	int result;
+};
+
 /// The main game class
 /** Currently this doc is here to switch on the class so that
 I can see what the modify.cpp docs look like.
@@ -123,7 +128,9 @@ public:
 
 	void RecordFact(FactBase* fact);
 	void WriteWorldEvents();
-	int SimulateBattle(char inputJsonFilename[]);
+
+	SimulationResult SimulateBattle(rapidjson::Document& document);
+	int RunBattleSimulation(char inputJsonFilename[], int count);
 	int ExportGameData();
 private:
 	//

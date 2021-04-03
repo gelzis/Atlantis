@@ -31,6 +31,7 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include "game.h"
 #include "unit.h"
@@ -45,7 +46,8 @@
 #include "rapidjson/document.h"     // rapidjson's DOM-style API
 #include "rapidjson/filereadstream.h"
 #include "rapidjson/filewritestream.h"
-#include <rapidjson/writer.h>
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 
 Game::Game()
 {
@@ -2369,7 +2371,7 @@ int Game::ExportGameData()
 	return 1;
 }
 
-int Game::SimulateBattle(char inputJsonFilename[])
+int Game::RunBattleSimulation(char inputJsonFilename[], int rounds)
 {
 	FILE * jsonFilePointer = fopen(inputJsonFilename , "r");
 
@@ -2397,7 +2399,83 @@ int Game::SimulateBattle(char inputJsonFilename[])
         return 0;
 	}
 
-	seedrandomrandom();
+	int wins = 0;
+	int loses = 0;
+	int draws = 0;
+
+	string victoryBattleText;
+	string lossBattleText;
+	string drawBattleText;
+
+	for (int i = 0; i < rounds; i++) {
+		SimulationResult simulationResult = SimulateBattle(document);
+
+		if (simulationResult.result == BATTLE_WON) {
+			wins++;
+			if (!victoryBattleText.length()) {
+				victoryBattleText = simulationResult.battleText;
+			}
+		} else if (simulationResult.result == BATTLE_LOST) {
+			loses++;
+			if (!lossBattleText.length()) {
+				lossBattleText = simulationResult.battleText;
+			}
+		} else {
+			draws++;
+			if (!drawBattleText.length()) {
+				drawBattleText = simulationResult.battleText;
+			}
+		}
+
+	}
+
+	rapidjson::Document SimulationDocument;
+	SimulationDocument.SetObject();
+	rapidjson::Value& rootValue = SimulationDocument;
+	rapidjson::Document::AllocatorType& objectAllocator = SimulationDocument.GetAllocator();
+
+	float ratio = (wins / (float)rounds) * 100;
+
+	rootValue.AddMember("wins", wins, objectAllocator);
+	rootValue.AddMember("loses", loses, objectAllocator);
+	rootValue.AddMember("draws", draws, objectAllocator);
+	rootValue.AddMember("winRatio", ratio, objectAllocator);
+
+	if (victoryBattleText.length()) {
+		rapidjson::Value rapidStringValue(rapidjson::kStringType);
+		rapidStringValue.SetString(victoryBattleText.c_str(), objectAllocator);
+		rootValue.AddMember("victoryBattleText", rapidStringValue, objectAllocator);
+	}
+
+	if (lossBattleText.length()) {
+		rapidjson::Value rapidStringValue(rapidjson::kStringType);
+		rapidStringValue.SetString(lossBattleText.c_str(), objectAllocator);
+		rootValue.AddMember("lossBattleText", rapidStringValue, objectAllocator);
+	}
+
+	if (drawBattleText.length()) {
+		rapidjson::Value rapidStringValue(rapidjson::kStringType);
+		rapidStringValue.SetString(drawBattleText.c_str(), objectAllocator);
+		rootValue.AddMember("drawBattleText", rapidStringValue, objectAllocator);
+	}
+
+	rapidjson::StringBuffer buffer;
+	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+	SimulationDocument.Accept(writer);
+
+	cout << buffer.GetString();
+
+	fclose(jsonFilePointer);
+
+	return 1;
+}
+
+SimulationResult Game::SimulateBattle(rapidjson::Document& document)
+{
+	struct timeval currentTime;
+	gettimeofday(&currentTime, NULL);
+
+	seedrandom(currentTime.tv_usec);
 
 	ARegionList regions;
 	regions.CreateBattlegroundWorld();
@@ -2482,16 +2560,27 @@ int Game::SimulateBattle(char inputJsonFilename[])
 		defender = u;
 	}
 
-	Battle * battleSimulation = new Battle;
+	Battle *battleSimulation = new Battle;
 	battleSimulation->WriteSides(customRegion, attacker, defender, &atts, &defs, 0, &regions);
-	battleSimulation->Run(customRegion, attacker, &atts, defender, &defs, 0, &regions);
+	Events* events = new Events();
+	int result = battleSimulation->Run(events, customRegion, attacker, &atts, defender, &defs, 0, &regions);
+
+	SimulationResult returnValue;
 
 	forlist_reuse(&battleSimulation->text) {
 		AString * s = (AString *) elem;
-		cout << *s << endl;
+
+		returnValue.battleText += s->Str();
+		returnValue.battleText += "\n";
 	}
 
-	return 1;
+	returnValue.result = result;
+
+	delete attackerFaction;
+	delete defenderFaction;
+	delete battleSimulation;
+
+	return returnValue;
 }
 
 
