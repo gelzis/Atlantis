@@ -127,6 +127,11 @@ int AString::operator==(const char *s)
 	return isEqual(s);
 }
 
+int AString::operator !=(const char *s)
+{
+	return !isEqual(s);
+}
+
 int AString::operator==(const AString &s)
 {
 	return isEqual(s.str);

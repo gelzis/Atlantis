@@ -56,11 +56,13 @@ int main(int argc, char *argv[])
 
 	initIO();
 
-	Awrite(AString("Atlantis Engine Version: ") +
-			ATL_VER_STRING(CURRENT_ATL_VER));
-	Awrite(AString(Globals->RULESET_NAME) + ", Version: " +
-			ATL_VER_STRING(Globals->RULESET_VERSION));
-	Awrite("");
+	if(AString(argv[1]) != "battle") {
+		Awrite(AString("Atlantis Engine Version: ") +
+				ATL_VER_STRING(CURRENT_ATL_VER));
+		Awrite(AString(Globals->RULESET_NAME) + ", Version: " +
+				ATL_VER_STRING(Globals->RULESET_VERSION));
+		Awrite("");
+	}
 
 	if (argc == 1) {
 		usage();
@@ -161,19 +163,25 @@ int main(int argc, char *argv[])
 				break;
 			}
 		} else if(AString(argv[1]) == "battle") {
-			if(argc != 3) {
+			if(argc != 3 && argc != 4) {
 				usage();
 				break;
 			}
 
-			if(!game.SimulateBattle(argv[2])) {
-				Awrite("Unable to generate battle report!");
+			int rounds = 1;
+
+			if (argc == 4) {
+				rounds = atoi(argv[3]);
+			}
+
+			if(!game.RunBattleSimulation(argv[2], rounds)) {
+				Awrite("Unable to generate battle simulation!");
 				break;
 			}
 		} else if(AString(argv[1]) == "exportdata") {
 
 			if(!game.ExportGameData()) {
-				Awrite("Unable to generate battle report!");
+				Awrite("Unable to export data!");
 				break;
 			}
 		} else {
