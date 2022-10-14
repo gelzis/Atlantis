@@ -32,6 +32,25 @@
 #include "quests.h"
 #include "items.h"
 
+void BattleDetails::AddSpoils(ItemList *items) {
+	forlist (items) {
+		Item* item = (Item*) elem;
+		this->spoils.emplace(item->type, item->num);
+	}
+}
+
+int getLost(Army* army) {
+	return army->count - army->NumAlive();
+}
+
+void BattleDetails::AddAttackerArmy(Army* army) {
+	this->attackerLost = getLost(army);
+}
+
+void BattleDetails::AddDefenderArmy(Army* army) {
+	this->defenderLost = getLost(army);
+}
+
 std::string WithPlural(int count, std::string single, std::string plural) {
 	return count > 1 ? plural : single;
 }
@@ -460,7 +479,8 @@ int Battle::Run(Events* events,
 		Unit * tar,
 		AList * defs,
 		int ass,
-		ARegionList *pRegs )
+		ARegionList *pRegs,
+		BattleDetails *details)
 {
 	Army * armies[2];
 	AString temp;
@@ -536,6 +556,12 @@ int Battle::Run(Events* events,
 			temp = "Spoils: none.";
 		}
 
+		if (details) {
+			details->AddAttackerArmy(armies[0]);
+			details->AddDefenderArmy(armies[1]);
+			details->AddSpoils(spoils);
+		}
+
 		armies[1]->Win(this, spoils);
 
 		AddLine("");
@@ -590,6 +616,12 @@ int Battle::Run(Events* events,
 			temp = "Spoils: none.";
 		}
 
+		if (details) {
+			details->AddAttackerArmy(armies[0]);
+			details->AddDefenderArmy(armies[1]);
+			details->AddSpoils(spoils);
+		}
+
 		armies[0]->Win(this, spoils);
 		AddLine("");
 		AddLine(temp);
@@ -627,6 +659,11 @@ int Battle::Run(Events* events,
 	AddLine("");
 	AddLine(temp);
 	AddLine("");
+
+	if (details) {
+		details->AddAttackerArmy(armies[0]);
+		details->AddDefenderArmy(armies[1]);
+	}
 
 	delete armies[0];
 	delete armies[1];
@@ -1093,7 +1130,7 @@ int Game::RunBattle(ARegion * r,Unit * attacker,Unit * target,int ass,
 			}
 		}
 	}
-	result = b->Run(events, r,attacker,&atts,target,&defs,ass, &regions );
+	result = b->Run(events, r,attacker,&atts,target,&defs,ass, &regions, NULL );
 
 	/* Remove all dead units */
 	int uncontrolled = 0;
