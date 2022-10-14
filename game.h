@@ -56,6 +56,8 @@ public:
 struct SimulationResult {
 	std::string battleText;
 	int result;
+
+	BattleDetails* details;
 };
 
 /// The main game class

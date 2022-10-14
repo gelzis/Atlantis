@@ -43,6 +43,10 @@
 #include "skills.h"
 #include "object.h"
 
+#include <algorithm>
+#include <numeric>
+#include <math.h>
+
 #include "rapidjson/document.h"     // rapidjson's DOM-style API
 #include "rapidjson/filereadstream.h"
 #include "rapidjson/filewritestream.h"
@@ -2371,6 +2375,98 @@ int Game::ExportGameData()
 	return 1;
 }
 
+struct StatRecord {
+	int min;
+	int max;
+	int range;
+	int occurance;
+	float mean;
+	int median;
+	int mode;
+	int percentile[10];
+	float stdDev;
+};
+
+StatRecord calculateStat(std::vector<int> &values) {
+	StatRecord rec;
+
+	std::map<int, int> hist;
+	rec.occurance = 0;
+
+	bool first = true;
+	int summ = 0;
+	for (auto &v : values) {
+		summ += v;
+		hist[v]++;
+
+		if (v > 0) {
+			rec.occurance++;
+		}
+
+		if (first) {
+			first = false;
+			
+			rec.min = v;
+			rec.max = v;
+		}
+		else {
+			rec.min = std::min(rec.min, v);
+			rec.max = std::max(rec.max, v);
+		}
+	}
+
+	rec.range = rec.max - rec.min;
+	rec.mean = (float) summ / values.size();
+
+	float stdDev = 0;
+	for (auto &v : values) {
+		float x = v - rec.mean;
+		stdDev += x * x;
+	}
+
+	rec.stdDev = sqrt(stdDev / values.size());
+
+	std::size_t n = values.size() / 2;
+	std::sort(std::begin(values), std::end(values));
+	rec.median = values[n];
+
+	for (int i = 0; i < 10; i++) {
+		int idx = (i + 1) * values.size() / 10 - 1;
+		rec.percentile[i] = values[std::max(idx, 0)];
+	}
+
+	int times = 0;
+	for (auto &kv : hist) {
+		if (kv.second > times) {
+			times = kv.second;
+			rec.mode = kv.first;
+		}
+	}
+
+	return rec;
+}
+
+rapidjson::Value statToJson(StatRecord &rec, rapidjson::Document::AllocatorType &allocator) {
+	rapidjson::Value o(rapidjson::kObjectType);
+
+	o.AddMember("occurance", rec.occurance, allocator);
+	o.AddMember("min", rec.min, allocator);
+	o.AddMember("max", rec.max, allocator);
+	o.AddMember("range", rec.range, allocator);
+	o.AddMember("mean", rec.mean, allocator);
+	o.AddMember("median", rec.median, allocator);
+	o.AddMember("mode", rec.mode, allocator);
+	o.AddMember("stdDev", rec.stdDev, allocator);
+
+	rapidjson::Value percentile(rapidjson::kArrayType);
+	for (auto &v : rec.percentile) {
+		percentile.PushBack(v, allocator);
+	}
+	o.AddMember("percentile", percentile, allocator);
+
+	return o;
+}
+
 int Game::RunBattleSimulation(char inputJsonFilename[], int rounds)
 {
 	FILE * jsonFilePointer = fopen(inputJsonFilename , "r");
@@ -2403,12 +2499,27 @@ int Game::RunBattleSimulation(char inputJsonFilename[], int rounds)
 	int loses = 0;
 	int draws = 0;
 
+	std::vector<int> attackerLooses;
+	std::vector<int> defenderLooses;
+	std::map<int, std::vector<int>> spoils;
+
 	string victoryBattleText;
 	string lossBattleText;
 	string drawBattleText;
 
 	for (int i = 0; i < rounds; i++) {
 		SimulationResult simulationResult = SimulateBattle(document);
+
+		attackerLooses.push_back(simulationResult.details->attackerLost);
+		defenderLooses.push_back(simulationResult.details->defenderLost);
+
+		for (auto &kv : simulationResult.details->spoils) {
+			spoils[kv.first].push_back(kv.second);
+		}
+
+		for (auto &kv : spoils) {
+			kv.second.resize(i + 1);
+		}
 
 		if (simulationResult.result == BATTLE_WON) {
 			wins++;
@@ -2427,6 +2538,7 @@ int Game::RunBattleSimulation(char inputJsonFilename[], int rounds)
 			}
 		}
 
+		delete simulationResult.details;
 	}
 
 	rapidjson::Document SimulationDocument;
@@ -2458,6 +2570,28 @@ int Game::RunBattleSimulation(char inputJsonFilename[], int rounds)
 		rapidStringValue.SetString(drawBattleText.c_str(), objectAllocator);
 		rootValue.AddMember("drawBattleText", rapidStringValue, objectAllocator);
 	}
+
+	StatRecord rec;
+
+	rec = calculateStat(attackerLooses);
+	rootValue.AddMember("attackerLooses", statToJson(rec, objectAllocator), objectAllocator);
+
+	rec = calculateStat(defenderLooses);
+	rootValue.AddMember("defenderLooses", statToJson(rec, objectAllocator), objectAllocator);
+
+	rapidjson::Value spoilsJson(rapidjson::kArrayType);
+	for (auto &kv : spoils) {
+		rec = calculateStat(kv.second);
+		auto value = statToJson(rec, objectAllocator);
+
+		rapidjson::Value name(rapidjson::kStringType);
+		name.SetString(ItemDefs[kv.first].names, objectAllocator);
+		value.AddMember("item", name, objectAllocator);
+
+		spoilsJson.PushBack(value, objectAllocator);
+	}
+
+	rootValue.AddMember("spoils", spoilsJson, objectAllocator);
 
 	rapidjson::StringBuffer buffer;
 	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -2563,7 +2697,8 @@ SimulationResult Game::SimulateBattle(rapidjson::Document& document)
 	Battle *battleSimulation = new Battle;
 	battleSimulation->WriteSides(customRegion, attacker, defender, &atts, &defs, 0, &regions);
 	Events* events = new Events();
-	int result = battleSimulation->Run(events, customRegion, attacker, &atts, defender, &defs, 0, &regions);
+	BattleDetails* details = new BattleDetails();
+	int result = battleSimulation->Run(events, customRegion, attacker, &atts, defender, &defs, 0, &regions, details);
 
 	SimulationResult returnValue;
 
@@ -2575,6 +2710,7 @@ SimulationResult Game::SimulateBattle(rapidjson::Document& document)
 	}
 
 	returnValue.result = result;
+	returnValue.details = details;
 
 	delete attackerFaction;
 	delete defenderFaction;

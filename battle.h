@@ -49,6 +49,16 @@ enum {
 	BATTLE_DRAW
 };
 
+struct BattleDetails {
+	int attackerLost;
+	int defenderLost;
+	std::map<int, int> spoils;
+
+	void AddSpoils(ItemList *items);
+	void AddAttackerArmy(Army* army);
+	void AddDefenderArmy(Army* army);
+};
+
 class BattlePtr : public AListElem
 {
 	public:
@@ -65,7 +75,7 @@ class Battle : public AListElem
 		void AddLine(const AString &);
 
 		int Run(Events* events, ARegion *, Unit *, AList *, Unit *, AList *, int ass,
-				ARegionList *pRegs);
+				ARegionList *pRegs, BattleDetails *details);
 		void FreeRound(Army *,Army *, int ass = 0);
 		void NormalRound(int,Army *,Army *);
 		void DoAttack(int round, Soldier *a, Army *attackers, Army *def,
