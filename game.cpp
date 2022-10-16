@@ -2236,6 +2236,20 @@ AList Game::GetUnitsFromJsonArray(rapidjson::Value& jsonArray, Faction *fact)
 	return UnitList;
 }
 
+std::string getItemCategory(int type) {
+	if (type & IT_MAN) return "man";
+	if (type & IT_MONSTER) return "monster";
+	if (type & IT_WEAPON) return "weapon";
+	if (type & IT_ARMOR) return "armour";
+	if (type & IT_MOUNT) return "mount";
+	if (type & IT_TOOL) return "tool";
+	if (type & IT_ILLUSION) return "illusion";
+	if (type & IT_UNDEAD) return "monster";
+	if (type & IT_DEMON) return "monster";
+
+	return "other";
+}
+
 int Game::ExportGameData()
 {
 	FILE* fp = fopen("items.json", "w");
@@ -2281,16 +2295,22 @@ int Game::ExportGameData()
 
 				rapidValue.SetString(name, allocator);
 				item.AddMember("name", rapidValue, allocator);
+				item.AddMember("category", "illusion", allocator);
 				a.PushBack(item, allocator);
 			} else {
 				rapidjson::Value item(rapidjson::kObjectType);
 				rapidjson::Value rapidValue(rapidjson::kStringType);
+				rapidjson::Value categoryValue(rapidjson::kStringType);
 
 				rapidValue.SetString(ItemDefs[i].abr, allocator);
 				item.AddMember("abbr", rapidValue, allocator);
 
 				rapidValue.SetString(ItemDefs[i].name, allocator);
 				item.AddMember("name", rapidValue, allocator);
+
+				categoryValue.SetString(getItemCategory(ItemDefs[i].type).c_str(), allocator);
+				item.AddMember("category", categoryValue, allocator);
+				
 				a.PushBack(item, allocator);
 			}
 		}
