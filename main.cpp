@@ -4,6 +4,7 @@
 #include "skills.h"
 #include "gamedata.h"
 #include "strings_util.hpp"
+#include <cstdlib>
 
 void usage()
 {
@@ -16,19 +17,16 @@ void usage()
     logger::write("atlantis genrules <introfile> <cssfile> <rules-outputfile>");
     logger::write("");
     logger::write("atlantis check <orderfile> <checkfile>");
+    logger::write("");
+    logger::write("atlantis battle <battlejsonfile> [rounds]");
+    logger::write("");
+    logger::write("atlantis exportdata");
 }
 
 int main(int argc, char *argv[])
 {
     Game game;
     int retval = 1;
-
-    // Give the rng an initial see.
-    rng::seed_random(1783); // this is the historical seed.. it gets reseeded in NewGame() to a random value.
-
-    logger::write("Atlantis Engine Version: " + ATL_VER_STRING(CURRENT_ATL_VER));
-    logger::write(Globals->RULESET_NAME + ", Version: " + ATL_VER_STRING(Globals->RULESET_VERSION));
-    logger::write("");
 
     if (argc == 1) {
         usage();
@@ -39,6 +37,17 @@ int main(int argc, char *argv[])
     std::vector<std::string> args;
     for (int i = 0; i < argc; i++) {
         args.push_back(argv[i]);
+    }
+
+    const bool battle_mode = (args[1] == "battle");
+
+    // Give the rng an initial seed.
+    rng::seed_random(1783); // this is the historical seed.. it gets reseeded in NewGame() to a random value.
+
+    if (!battle_mode) {
+        logger::write("Atlantis Engine Version: " + ATL_VER_STRING(CURRENT_ATL_VER));
+        logger::write(Globals->RULESET_NAME + ", Version: " + ATL_VER_STRING(Globals->RULESET_VERSION));
+        logger::write("");
     }
 
     game.ModifyTablesPerRuleset();
@@ -131,6 +140,24 @@ int main(int argc, char *argv[])
             }
             if (!game.generate_rules(args[4], args[3], args[2])) {
                 logger::write("Unable to generate rules!");
+                break;
+            }
+        } else if (args[1] == "battle") {
+            if (argc != 3 && argc != 4) {
+                usage();
+                break;
+            }
+
+            int rounds = 1;
+            if (argc == 4) rounds = std::atoi(argv[3]);
+
+            if (!game.run_battle_simulation(args[2], rounds)) {
+                logger::write("Unable to generate battle simulation!");
+                break;
+            }
+        } else if (args[1] == "exportdata") {
+            if (!game.export_game_data()) {
+                logger::write("Unable to export data!");
                 break;
             }
         } else {

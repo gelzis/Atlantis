@@ -2400,6 +2400,29 @@ void ARegionList::create_levels(int n)
     pRegionArrays = new ARegionArray *[n];
 }
 
+void ARegionList::create_battleground_world()
+{
+    create_levels(1);
+
+    ARegionArray *arr = new ARegionArray(1, 1);
+    pRegionArrays[0] = arr;
+
+    ARegion *reg = new ARegion();
+    reg->SetLoc(0, 0, 0);
+    reg->num = regions.size();
+    reg->type = R_PLAIN;
+    reg->race = -1;
+    reg->wages = -1;
+    reg->level = arr;
+
+    regions.push_back(reg);
+    arr->SetRegion(0, 0, reg);
+    arr->set_name("Battlegrounds");
+    arr->levelType = ARegionArray::LEVEL_SURFACE;
+
+    FinalSetup(arr);
+}
+
 ARegionArray::ARegionArray(int xx, int yy)
 {
     x = xx;
@@ -3973,4 +3996,3 @@ int ARegionList::find_distance_between_regions(ARegion *start, ARegion *end)
     graphs::Location2D b = { end->xloc, end->yloc };
     return cylDistance(a, b, w);
 }
-

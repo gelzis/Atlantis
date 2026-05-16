@@ -7,6 +7,26 @@
 #include "items.h"
 #include "strings_util.hpp"
 
+void BattleDetails::AddSpoils(ItemList& items) {
+    for (const auto item : items) {
+        spoils[item->type] += item->num;
+    }
+}
+
+namespace {
+int getLost(Army *army) {
+    return army->count - army->NumAlive();
+}
+}
+
+void BattleDetails::AddAttackerArmy(Army *army) {
+    attackerLost = getLost(army);
+}
+
+void BattleDetails::AddDefenderArmy(Army *army) {
+    defenderLost = getLost(army);
+}
+
 enum class StatsCategory {
     ROUND,
     BATTLE
@@ -445,7 +465,7 @@ static void AddAssassinationFact(
 
 int Battle::Run(
     Events* events, ARegion *region, Unit *att, std::list<Location *>& atts,
-    Unit *tar, std::list<Location *>& defs, int ass
+    Unit *tar, std::list<Location *>& defs, int ass, BattleDetails *details
 )
 {
     Army * armies[2];
@@ -525,6 +545,12 @@ int Battle::Run(
             temp = "Spoils: none.";
         }
 
+        if (details) {
+            details->AddAttackerArmy(armies[0]);
+            details->AddDefenderArmy(armies[1]);
+            details->AddSpoils(spoils);
+        }
+
         armies[1]->Win(this, spoils);
 
         AddLine("");
@@ -578,6 +604,12 @@ int Battle::Run(
             temp = "Spoils: none.";
         }
 
+        if (details) {
+            details->AddAttackerArmy(armies[0]);
+            details->AddDefenderArmy(armies[1]);
+            details->AddSpoils(spoils);
+        }
+
         armies[0]->Win(this, spoils);
         AddLine("");
         AddLine(temp);
@@ -617,6 +649,11 @@ int Battle::Run(
     AddLine("");
     AddLine(temp);
     AddLine("");
+
+    if (details) {
+        details->AddAttackerArmy(armies[0]);
+        details->AddDefenderArmy(armies[1]);
+    }
 
     delete armies[0];
     delete armies[1];

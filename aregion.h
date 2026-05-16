@@ -461,6 +461,7 @@ class ARegionList
         void create_nexus_level(int level, int xSize, int ySize, const std::string& name);
         void create_surface_level(int level, int xSize, int ySize, const std::string& name);
         void create_natural_surface_level(Map* map);
+        void create_battleground_world();
         void create_island_ring_level(int level, int xSize, int ySize, const std::string& name);
         void create_island_level(int level, int nPlayers, const std::string& name);
         void create_underworld_level(int level, int xSize, int ySize, const std::string& name);

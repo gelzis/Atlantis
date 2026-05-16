@@ -8,6 +8,7 @@ class Battle;
 #include "army.h"
 #include "items.h"
 #include "events.h"
+#include <map>
 #include <vector>
 
 class Location;
@@ -28,6 +29,17 @@ enum {
     BATTLE_DRAW
 };
 
+struct BattleDetails
+{
+    int attackerLost = 0;
+    int defenderLost = 0;
+    std::map<int, int> spoils;
+
+    void AddSpoils(ItemList& items);
+    void AddAttackerArmy(Army *army);
+    void AddDefenderArmy(Army *army);
+};
+
 class Battle
 {
     public:
@@ -36,7 +48,7 @@ class Battle
 
         int Run(
             Events* events, ARegion *region, Unit *att, std::list<Location *>& atts,
-            Unit *tar, std::list<Location *>& defs, int ass
+            Unit *tar, std::list<Location *>& defs, int ass, BattleDetails *details = nullptr
         );
         void FreeRound(Army *,Army *, int ass = 0);
         void NormalRound(int,Army *,Army *);

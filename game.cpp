@@ -5,8 +5,15 @@
 #endif
 
 #include <iostream>
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
 #include <fstream>
 #include <filesystem>
+#include <memory>
+#include <optional>
+#include <stdexcept>
 #include <string.h>
 
 #include "game.h"
@@ -21,6 +28,505 @@
 
 #include "external/nlohmann/json.hpp"
 using json = nlohmann::json;
+
+namespace {
+
+struct StatRecord {
+    int min = 0;
+    int max = 0;
+    int range = 0;
+    int occurance = 0;
+    double mean = 0.0;
+    int median = 0;
+    int mode = 0;
+    std::array<int, 10> percentile = {};
+    double stdDev = 0.0;
+};
+
+const json *find_json_field(const json& value, std::initializer_list<const char *> keys) {
+    if (!value.is_object()) return nullptr;
+
+    for (const char *key : keys) {
+        auto it = value.find(key);
+        if (it != value.end()) return &(*it);
+    }
+
+    return nullptr;
+}
+
+std::optional<std::string> get_string_field(const json& value, std::initializer_list<const char *> keys) {
+    if (const json *field = find_json_field(value, keys); field && field->is_string()) {
+        return field->get<std::string>();
+    }
+
+    return std::nullopt;
+}
+
+bool parse_behind_flag(const json& flags) {
+    if (!flags.is_object()) return false;
+
+    auto it = flags.find("behind");
+    return it != flags.end() && it->is_boolean() && it->get<bool>();
+}
+
+const json *get_units_array(const json& value) {
+    if (!value.is_object()) return nullptr;
+
+    auto units = value.find("units");
+    if (units == value.end() || !units->is_array()) return nullptr;
+
+    return &(*units);
+}
+
+const json *get_known_skills_array(const json& skills) {
+    if (!skills.is_object()) return nullptr;
+
+    auto known = skills.find("known");
+    if (known == skills.end() || !known->is_array()) return nullptr;
+
+    return &(*known);
+}
+
+bool side_has_units(const json& side) {
+    if (const json *units = get_units_array(side); units && !units->empty()) {
+        return true;
+    }
+
+    if (const json *structures = find_json_field(side, {"structures"})) {
+        if (!structures->is_array()) return false;
+
+        for (const auto& structure : *structures) {
+            if (const json *units = get_units_array(structure); units && !units->empty()) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+int resolve_item(const json& value) {
+    auto text = get_string_field(value, {"tag", "name"});
+    if (!text) throw std::runtime_error("Each simulated item must define a tag or name.");
+
+    int item = lookup_item(*text);
+    if (item != -1) return item;
+
+    item = parse_enabled_item(parser::token(*text));
+    if (item != -1) return item;
+
+    throw std::runtime_error("Couldn't find item: " + *text);
+}
+
+int resolve_skill(const json& value) {
+    auto text = get_string_field(value, {"tag", "name"});
+    if (!text) throw std::runtime_error("Each simulated skill must define a tag or name.");
+
+    int skill = lookup_skill(parser::token(*text));
+    if (skill != -1) return skill;
+
+    skill = parse_skill(parser::token(*text));
+    if (skill != -1) return skill;
+
+    throw std::runtime_error("Couldn't find skill: " + *text);
+}
+
+int resolve_object_type(const json& value) {
+    if (!value.is_object()) {
+        throw std::runtime_error("Each simulated structure must be a JSON object.");
+    }
+
+    auto text = get_string_field(value, {"type"});
+    if (!text) throw std::runtime_error("Each simulated structure must define a type.");
+
+    int object_type = lookup_object(*text);
+    if (object_type != -1) return object_type;
+
+    object_type = parse_object(parser::token(*text), false);
+    if (object_type >= 0) return object_type;
+
+    throw std::runtime_error("Couldn't find object: " + *text);
+}
+
+void validate_battle_document(const json& document) {
+    if (!document.is_object()) {
+        throw std::runtime_error("Battle simulation input must be a JSON object.");
+    }
+
+    for (const char *side_name : {"attackers", "defenders"}) {
+        auto side = document.find(side_name);
+        if (side == document.end() || !side->is_object()) {
+            throw std::runtime_error(std::string("Please specify ") + side_name + " as JSON objects.");
+        }
+
+        if (!side_has_units(*side)) {
+            throw std::runtime_error(
+                std::string("Please specify ") + side_name
+                + " units in report-style json using units[] or structures[].units[]!"
+            );
+        }
+    }
+}
+
+void populate_unit_items(Unit *unit, const json& items) {
+    if (!items.is_array()) {
+        throw std::runtime_error("Each simulated unit must define items as an array.");
+    }
+
+    bool has_items = false;
+    bool all_items_are_monsters = true;
+
+    for (const auto& item : items) {
+        if (!item.is_object()) {
+            throw std::runtime_error("Each simulated item must be a JSON object.");
+        }
+
+        auto amount_it = item.find("amount");
+        if (amount_it == item.end() || !amount_it->is_number_integer()) {
+            throw std::runtime_error("Each simulated item must define an integer amount.");
+        }
+
+        int amount = amount_it->get<int>();
+        if (amount <= 0) {
+            throw std::runtime_error("Simulated item amounts must be positive.");
+        }
+
+        int item_num = resolve_item(item);
+        unit->items.SetNum(item_num, amount);
+        has_items = true;
+
+        if (!(ItemDefs[item_num].type & IT_MONSTER)) {
+            all_items_are_monsters = false;
+        }
+    }
+
+    if (!has_items) {
+        throw std::runtime_error("Each simulated unit must define at least one item.");
+    }
+
+    if (all_items_are_monsters) {
+        unit->type = U_WMON;
+    }
+}
+
+void populate_unit_skills(Unit *unit, const json& skills) {
+    const json *known_skills = get_known_skills_array(skills);
+    if (!known_skills) {
+        throw std::runtime_error("Each simulated unit must define skills.known as an array.");
+    }
+
+    for (const auto& skill : *known_skills) {
+        if (!skill.is_object()) {
+            throw std::runtime_error("Each simulated skill must be a JSON object.");
+        }
+
+        auto level_it = skill.find("level");
+        if (level_it == skill.end() || !level_it->is_number_integer()) {
+            throw std::runtime_error("Each simulated skill must define an integer level.");
+        }
+
+        int skill_num = resolve_skill(skill);
+        int level = level_it->get<int>();
+        if (level < 0) {
+            throw std::runtime_error("Simulated skill levels must be non-negative.");
+        }
+
+        unit->skills.SetDays(skill_num, GetDaysByLevel(level) * unit->GetMen());
+    }
+}
+
+void populate_unit_readied(Unit *unit, const json& readied) {
+    if (!readied.is_object()) {
+        throw std::runtime_error("Each simulated unit must define readied as an object.");
+    }
+
+    if (const json *ready_item = find_json_field(readied, {"item"})) {
+        unit->readyItem = resolve_item(*ready_item);
+    }
+
+    if (const json *weapons = find_json_field(readied, {"weapons"})) {
+        if (!weapons->is_array()) {
+            throw std::runtime_error("Each simulated unit must define readied.weapons as an array.");
+        }
+        if (weapons->size() > MAX_READY) {
+            throw std::runtime_error("Simulated units may define at most MAX_READY ready weapons.");
+        }
+
+        int index = 0;
+        for (const auto& weapon : *weapons) {
+            int item_num = resolve_item(weapon);
+            if (!(ItemDefs[item_num].type & IT_WEAPON)) {
+                throw std::runtime_error("Each readied weapon must resolve to a weapon item.");
+            }
+            unit->readyWeapon[index++] = item_num;
+        }
+    }
+
+    if (const json *armor = find_json_field(readied, {"armor"})) {
+        if (!armor->is_array()) {
+            throw std::runtime_error("Each simulated unit must define readied.armor as an array.");
+        }
+        if (armor->size() > MAX_READY) {
+            throw std::runtime_error("Simulated units may define at most MAX_READY ready armor items.");
+        }
+
+        int index = 0;
+        for (const auto& armor_item : *armor) {
+            int item_num = resolve_item(armor_item);
+            if (!(ItemDefs[item_num].type & IT_ARMOR)) {
+                throw std::runtime_error("Each readied armor entry must resolve to an armor item.");
+            }
+            unit->readyArmor[index++] = item_num;
+        }
+    }
+}
+
+Object *create_simulation_structure(const json& structure_json, ARegion *region) {
+    if (!structure_json.is_object()) {
+        throw std::runtime_error("Battle simulation structures must be JSON objects.");
+    }
+
+    int object_type = resolve_object_type(structure_json);
+
+    Object *structure = new Object(region);
+    structure->type = object_type;
+    structure->num = region->buildingseq++;
+    structure->capacity = 20000;
+    if (auto name = get_string_field(structure_json, {"name"})) {
+        structure->set_name(*name);
+    } else {
+        structure->set_name(ObjectDefs[object_type].name);
+    }
+    region->objects.push_back(structure);
+    return structure;
+}
+
+void build_simulation_units(
+    const json& units,
+    Faction *faction,
+    ARegion *region,
+    Object *target_object,
+    int& next_unit_number,
+    std::vector<std::unique_ptr<Location>>& owned_locations,
+    std::list<Location *>& raw_locations,
+    Unit *&leader
+) {
+    if (!units.is_array()) {
+        throw std::runtime_error("Battle simulation units must be an array.");
+    }
+
+    for (const auto& unit_json : units) {
+        if (!unit_json.is_object()) {
+            throw std::runtime_error("Each simulated unit must be a JSON object.");
+        }
+
+        Unit *unit = new Unit(next_unit_number++, faction);
+        bool moved_to_object = false;
+
+        try {
+            if (auto name = get_string_field(unit_json, {"name"})) {
+                unit->set_name(*name);
+            }
+
+            if (auto description = get_string_field(unit_json, {"description"})) {
+                unit->set_description(*description);
+            }
+
+            if (const json *flags = find_json_field(unit_json, {"flags"}); flags && parse_behind_flag(*flags)) {
+                unit->SetFlag(FLAG_BEHIND, 1);
+            }
+
+            auto items_it = unit_json.find("items");
+            if (items_it == unit_json.end()) {
+                throw std::runtime_error("Each simulated unit must define items.");
+            }
+            populate_unit_items(unit, *items_it);
+
+            if (const json *skills = find_json_field(unit_json, {"skills"})) {
+                populate_unit_skills(unit, *skills);
+            }
+
+            if (const json *combat_spell = find_json_field(unit_json, {"combat_spell"})) {
+                unit->type = U_MAGE;
+                unit->combat = resolve_skill(*combat_spell);
+            }
+
+            if (const json *readied = find_json_field(unit_json, {"readied"})) {
+                populate_unit_readied(unit, *readied);
+            }
+
+            if (unit->GetSoldiers() <= 0) {
+                throw std::runtime_error("Simulated units must contain at least one soldier.");
+            }
+
+            unit->MoveUnit(target_object);
+            moved_to_object = true;
+
+            auto location = std::make_unique<Location>();
+            location->unit = unit;
+            location->obj = target_object;
+            location->region = region;
+            raw_locations.push_back(location.get());
+            owned_locations.push_back(std::move(location));
+
+            leader = unit;
+        } catch (...) {
+            if (!moved_to_object) {
+                delete unit;
+            }
+            throw;
+        }
+    }
+}
+
+void build_simulation_side(
+    const json& side,
+    Faction *faction,
+    ARegion *region,
+    int& next_unit_number,
+    std::vector<std::unique_ptr<Location>>& owned_locations,
+    std::list<Location *>& raw_locations,
+    Unit *&leader
+) {
+    bool built_any_units = false;
+
+    if (const json *outdoor_units = get_units_array(side); outdoor_units && !outdoor_units->empty()) {
+        build_simulation_units(
+            *outdoor_units,
+            faction,
+            region,
+            region->GetDummy(),
+            next_unit_number,
+            owned_locations,
+            raw_locations,
+            leader
+        );
+        built_any_units = true;
+    }
+
+    if (const json *structures = find_json_field(side, {"structures"})) {
+        if (!structures->is_array()) {
+            throw std::runtime_error("Battle simulation structures must be an array.");
+        }
+
+        for (const auto& structure_json : *structures) {
+            const json *structure_units = get_units_array(structure_json);
+            if (!structure_units) {
+                throw std::runtime_error("Each simulated structure must define units as an array.");
+            }
+            if (structure_units->empty()) {
+                continue;
+            }
+
+            Object *structure = create_simulation_structure(structure_json, region);
+            build_simulation_units(
+                *structure_units,
+                faction,
+                region,
+                structure,
+                next_unit_number,
+                owned_locations,
+                raw_locations,
+                leader
+            );
+            built_any_units = true;
+        }
+    }
+
+    if (!built_any_units || !leader) {
+        throw std::runtime_error("Battle simulation side must contain at least one unit.");
+    }
+}
+
+StatRecord calculate_stat(const std::vector<int>& values) {
+    StatRecord rec;
+    if (values.empty()) return rec;
+
+    std::map<int, int> histogram;
+    int sum = 0;
+    bool first = true;
+
+    for (int value : values) {
+        sum += value;
+        histogram[value]++;
+
+        if (value > 0) rec.occurance++;
+
+        if (first) {
+            first = false;
+            rec.min = value;
+            rec.max = value;
+        } else {
+            rec.min = std::min(rec.min, value);
+            rec.max = std::max(rec.max, value);
+        }
+    }
+
+    rec.range = rec.max - rec.min;
+    rec.mean = static_cast<double>(sum) / values.size();
+
+    double variance_sum = 0.0;
+    for (int value : values) {
+        double delta = static_cast<double>(value) - rec.mean;
+        variance_sum += delta * delta;
+    }
+    rec.stdDev = std::sqrt(variance_sum / values.size());
+
+    std::vector<int> sorted_values(values);
+    std::sort(sorted_values.begin(), sorted_values.end());
+    rec.median = sorted_values[sorted_values.size() / 2];
+
+    for (int i = 0; i < 10; i++) {
+        int idx = static_cast<int>(((i + 1) * sorted_values.size()) / 10) - 1;
+        rec.percentile[i] = sorted_values[std::max(idx, 0)];
+    }
+
+    int mode_count = 0;
+    for (const auto& [value, count] : histogram) {
+        if (count > mode_count) {
+            mode_count = count;
+            rec.mode = value;
+        }
+    }
+
+    return rec;
+}
+
+json stat_to_json(const StatRecord& rec) {
+    json result = {
+        {"occurance", rec.occurance},
+        {"min", rec.min},
+        {"max", rec.max},
+        {"range", rec.range},
+        {"mean", rec.mean},
+        {"median", rec.median},
+        {"mode", rec.mode},
+        {"stdDev", rec.stdDev},
+    };
+
+    result["percentile"] = json::array();
+    for (int value : rec.percentile) {
+        result["percentile"].push_back(value);
+    }
+
+    return result;
+}
+
+std::string get_item_category(int type) {
+    if (type & IT_MAN) return "man";
+    if (type & IT_MONSTER) return "monster";
+    if (type & IT_WEAPON) return "weapon";
+    if (type & IT_ARMOR) return "armour";
+    if (type & IT_MOUNT) return "mount";
+    if (type & IT_TOOL) return "tool";
+    if (type & IT_ILLUSION) return "illusion";
+    if (type & IT_UNDEAD) return "monster";
+    if (type & IT_DEMON) return "monster";
+
+    return "other";
+}
+
+} // namespace
 
 Game::Game()
 {
@@ -1928,6 +2434,263 @@ void Game::write_times_article(std::string article)
     if (f.is_open()) {
         f << indent::wrap(78,70,0) << article << '\n';
     }
+}
+
+SimulationResult Game::simulate_battle(const json& document)
+{
+    validate_battle_document(document);
+
+    ARegionList battle_regions;
+    battle_regions.create_battleground_world();
+
+    ARegion *battle_region = battle_regions.GetRegion(0, 0, 0);
+
+    Faction attacker_faction(3);
+    attacker_faction.set_name("Attacker");
+
+    Faction defender_faction(4);
+    defender_faction.set_name("Defender");
+
+    int next_unit_number = 1;
+    std::vector<std::unique_ptr<Location>> attacker_owned_locations;
+    std::vector<std::unique_ptr<Location>> defender_owned_locations;
+    std::list<Location *> attackers;
+    std::list<Location *> defenders;
+    Unit *attacker = nullptr;
+    Unit *defender = nullptr;
+
+    build_simulation_side(
+        document.at("attackers"),
+        &attacker_faction,
+        battle_region,
+        next_unit_number,
+        attacker_owned_locations,
+        attackers,
+        attacker
+    );
+    build_simulation_side(
+        document.at("defenders"),
+        &defender_faction,
+        battle_region,
+        next_unit_number,
+        defender_owned_locations,
+        defenders,
+        defender
+    );
+
+    Battle battle_simulation;
+    battle_simulation.WriteSides(battle_region, attacker, defender, attackers, defenders, 0);
+
+    Events simulation_events;
+    std::unique_ptr<BattleDetails> details = std::make_unique<BattleDetails>();
+
+    SimulationResult result;
+    result.result = battle_simulation.Run(
+        &simulation_events,
+        battle_region,
+        attacker,
+        attackers,
+        defender,
+        defenders,
+        0,
+        details.get()
+    );
+
+    for (const auto& line : battle_simulation.text) {
+        result.battleText += line;
+        result.battleText += "\n";
+    }
+
+    result.details = details.release();
+    return result;
+}
+
+json Game::summarize_battle_simulation(const json& document, int rounds)
+{
+    validate_battle_document(document);
+
+    if (rounds <= 0) {
+        throw std::runtime_error("Battle simulation rounds must be positive.");
+    }
+
+    int wins = 0;
+    int loses = 0;
+    int draws = 0;
+
+    std::vector<int> attacker_losses;
+    std::vector<int> defender_losses;
+    std::map<int, std::vector<int>> spoils;
+
+    std::string victory_battle_text;
+    std::string loss_battle_text;
+    std::string draw_battle_text;
+
+    for (int round = 0; round < rounds; round++) {
+        SimulationResult simulation = simulate_battle(document);
+        std::unique_ptr<BattleDetails> details(simulation.details);
+
+        if (!details) {
+            throw std::runtime_error("Battle simulation did not produce statistics.");
+        }
+
+        attacker_losses.push_back(details->attackerLost);
+        defender_losses.push_back(details->defenderLost);
+
+        for (auto& [item, values] : spoils) {
+            values.push_back(0);
+        }
+
+        for (const auto& [item, amount] : details->spoils) {
+            auto [it, inserted] = spoils.try_emplace(item, round + 1, 0);
+            it->second.back() = amount;
+            (void) inserted;
+        }
+
+        if (simulation.result == BATTLE_WON) {
+            wins++;
+            if (victory_battle_text.empty()) {
+                victory_battle_text = simulation.battleText;
+            }
+        } else if (simulation.result == BATTLE_LOST) {
+            loses++;
+            if (loss_battle_text.empty()) {
+                loss_battle_text = simulation.battleText;
+            }
+        } else if (simulation.result == BATTLE_DRAW) {
+            draws++;
+            if (draw_battle_text.empty()) {
+                draw_battle_text = simulation.battleText;
+            }
+        } else {
+            throw std::runtime_error("Battle simulation could not resolve a winner.");
+        }
+    }
+
+    json summary = {
+        {"wins", wins},
+        {"loses", loses},
+        {"draws", draws},
+        {"winRatio", (static_cast<double>(wins) / rounds) * 100.0},
+        {"attackerLooses", stat_to_json(calculate_stat(attacker_losses))},
+        {"defenderLooses", stat_to_json(calculate_stat(defender_losses))},
+    };
+
+    if (!victory_battle_text.empty()) summary["victoryBattleText"] = victory_battle_text;
+    if (!loss_battle_text.empty()) summary["lossBattleText"] = loss_battle_text;
+    if (!draw_battle_text.empty()) summary["drawBattleText"] = draw_battle_text;
+
+    summary["spoils"] = json::array();
+    for (const auto& [item, values] : spoils) {
+        json spoil_stats = stat_to_json(calculate_stat(values));
+        spoil_stats["item"] = ItemDefs[item].names;
+        summary["spoils"].push_back(spoil_stats);
+    }
+
+    return summary;
+}
+
+int Game::run_battle_simulation(const std::string& input_json_filename, int rounds)
+{
+    std::ifstream json_file(input_json_filename);
+    if (!json_file.is_open()) {
+        std::cout << "No such file found " << input_json_filename << "!" << std::endl;
+        return 0;
+    }
+
+    try {
+        json document;
+        json_file >> document;
+
+        rng::seed_random();
+        std::cout << summarize_battle_simulation(document, rounds).dump();
+    } catch (const std::exception& ex) {
+        std::cout << ex.what() << std::endl;
+        return 0;
+    }
+
+    return 1;
+}
+
+int Game::export_game_data()
+{
+    auto write_json_file = [](const std::string& filename, const json& document) {
+        std::ofstream output(filename, std::ios::out | std::ios::trunc);
+        if (!output.is_open()) {
+            return false;
+        }
+
+        output << document.dump();
+        return true;
+    };
+
+    json items = json::array();
+    for (int i = 0; i < NITEMS; i++) {
+        if (ItemDefs[i].flags & ItemType::DISABLED) continue;
+
+        if (!find_battle_item(ItemDefs[i].abr)
+            && !find_armor(ItemDefs[i].abr)
+            && !find_weapon(ItemDefs[i].abr)
+            && !find_mount(ItemDefs[i].abr)
+            && !find_monster(ItemDefs[i].abr, 0)
+            && !find_race(ItemDefs[i].abr)
+            && ItemDefs[i].abr != "HPOT"
+            && ItemDefs[i].abr != "HERB"
+            && ItemDefs[i].abr != "STAH"
+            && !(ItemDefs[i].flags & ItemType::MANPRODUCE)) {
+            continue;
+        }
+
+        if (ItemDefs[i].type & IT_ILLUSION) {
+            items.push_back({
+                {"abbr", "i" + ItemDefs[i].abr},
+                {"name", "illusory " + ItemDefs[i].name},
+                {"category", "illusion"},
+            });
+        } else {
+            items.push_back({
+                {"abbr", ItemDefs[i].abr},
+                {"name", ItemDefs[i].name},
+                {"category", get_item_category(ItemDefs[i].type)},
+            });
+        }
+    }
+
+    json skills = json::array();
+    for (int i = 0; i < NSKILLS; i++) {
+        if (SkillDefs[i].flags & SkillType::DISABLED) continue;
+
+        if (!(SkillDefs[i].flags & SkillType::COMBAT)
+            && !(SkillDefs[i].flags & SkillType::BATTLEREP)
+            && SkillDefs[i].abbr != "MHEA"
+            && SkillDefs[i].abbr != "HEAL") {
+            continue;
+        }
+
+        json skill = {
+            {"abbr", SkillDefs[i].abbr},
+            {"name", SkillDefs[i].name},
+        };
+
+        if (SkillDefs[i].flags & SkillType::COMBAT) {
+            skill["combatSpell"] = true;
+        }
+
+        skills.push_back(skill);
+    }
+
+    json objects = json::array();
+    for (int i = 0; i < NOBJECTS; i++) {
+        if (ObjectDefs[i].flags & ObjectType::DISABLED) continue;
+        if (!ObjectDefs[i].protect) continue;
+
+        objects.push_back(ObjectDefs[i].name);
+    }
+
+    if (!write_json_file("items.json", items)) return 0;
+    if (!write_json_file("skills.json", skills)) return 0;
+    if (!write_json_file("objects.json", objects)) return 0;
+
+    return 1;
 }
 
 

@@ -9,6 +9,7 @@ class Game;
 #include "production.h"
 #include "object.h"
 #include "events.h"
+#include "battle.h"
 #include "rng.hpp"
 #include "indenter.hpp"
 #include "string_parser.hpp"
@@ -35,6 +36,12 @@ public:
     int numerrors;
 
     void error(const std::string& err);
+};
+
+struct SimulationResult {
+    std::string battleText;
+    int result = BATTLE_IMPOSSIBLE;
+    BattleDetails *details = nullptr;
 };
 
 /// The main game class
@@ -110,6 +117,10 @@ public:
 
     void RecordFact(FactBase *fact);
     void WriteWorldEvents();
+    SimulationResult simulate_battle(const json& document);
+    json summarize_battle_simulation(const json& document, int rounds);
+    int run_battle_simulation(const std::string& input_json_filename, int count);
+    int export_game_data();
 
 private:
     //
